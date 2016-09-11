@@ -152,7 +152,6 @@ class TrezorClientBase(GuiMixin, PrintError):
     def i4b(self, x):
         return pack('>I', x)
 
-<<<<<<< HEAD
     def get_xpub(self, bip32_path):
         address_n = self.expand_path(bip32_path)
         creating = False #self.next_account_number() == 0
@@ -163,11 +162,7 @@ class TrezorClientBase(GuiMixin, PrintError):
         return EncodeBase58Check(xpub)
 
     #def address_from_derivation(self, derivation):
-    #    return self.get_address('Bitcoin', self.expand_path(derivation))
-=======
-    def address_from_derivation(self, derivation):
-        return self.get_address('Argentum', self.expand_path(derivation))
->>>>>>> 1f17654d5b87b83f7ebd13b4fc56b48593b770b7
+    #    return self.get_address('Argentum', self.expand_path(derivation))
 
     def toggle_passphrase(self):
         if self.features.passphrase_protection:

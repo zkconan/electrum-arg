@@ -158,7 +158,6 @@ class Plugin(BasePlugin):
 
     def cosigner_can_sign(self, tx, cosigner_xpub):
         from electrum_arg.keystore import is_xpubkey, parse_xpubkey
-        from electrum_arg.transaction import x_to_xpub
         xpub_set = set([])
         for txin in tx.inputs():
             for x_pubkey in txin['x_pubkeys']:

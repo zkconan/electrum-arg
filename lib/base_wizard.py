@@ -150,13 +150,8 @@ class BaseWizard(object):
             v = keystore.is_any_key
             title = _("Create keystore from keys")
             message = ' '.join([
-<<<<<<< HEAD
                 _("To create a watching-only wallet, please enter your master public key (xpub)."),
-                _("To create a spending wallet, please enter a master private key (xprv), or a list of Bitcoin private keys.")
-=======
-                _("To create a watching-only wallet, please enter your master public key (xpub), or a list of Argentum addresses."),
                 _("To create a spending wallet, please enter a master private key (xprv), or a list of Argentum private keys.")
->>>>>>> 1f17654d5b87b83f7ebd13b4fc56b48593b770b7
             ])
         else:
             v = keystore.is_bip32_key
@@ -374,18 +369,3 @@ class BaseWizard(object):
             self.terminate()
         msg = _("Electrum is generating your addresses, please wait.")
         self.waiting_dialog(task, msg)
-<<<<<<< HEAD
-=======
-
-    def create_seed(self):
-        from electrum_arg.wallet import BIP32_Wallet
-        seed = BIP32_Wallet.make_seed()
-        self.show_seed_dialog(run_next=self.confirm_seed, seed_text=seed)
-
-    def confirm_seed(self, seed):
-        self.confirm_seed_dialog(run_next=self.add_password, is_valid=lambda x: x==seed)
-
-    def add_password(self, text):
-        f = lambda pw: self.run('create_wallet', text, pw)
-        self.request_password(run_next=f)
->>>>>>> 1f17654d5b87b83f7ebd13b4fc56b48593b770b7
