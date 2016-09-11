@@ -51,7 +51,7 @@ from electrum_arg.util import (block_explorer, block_explorer_info, format_time,
 from electrum_arg import Transaction, mnemonic
 from electrum_arg import util, bitcoin, commands, coinchooser
 from electrum_arg import SimpleConfig, paymentrequest
-from electrum_arg.wallet import Wallet, BIP32_RD_Wallet, Multisig_Wallet
+from electrum_arg.wallet import Wallet, Multisig_Wallet
 
 from amountedit import BTCAmountEdit, MyLineEdit, BTCkBEdit
 from network_dialog import NetworkDialog
