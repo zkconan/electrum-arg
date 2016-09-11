@@ -31,12 +31,12 @@ import xmlrpclib
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
-from electrum import bitcoin, util
-from electrum import transaction
-from electrum.plugins import BasePlugin, hook
-from electrum.i18n import _
+from electrum_arg import bitcoin, util
+from electrum_arg import transaction
+from electrum_arg.plugins import BasePlugin, hook
+from electrum_arg.i18n import _
 
-from electrum_gui.qt.transaction_dialog import show_transaction
+from electrum_arg_gui.qt.transaction_dialog import show_transaction
 
 import sys
 import traceback
@@ -157,7 +157,8 @@ class Plugin(BasePlugin):
             d.cosigner_send_button.hide()
 
     def cosigner_can_sign(self, tx, cosigner_xpub):
-        from electrum.keystore import is_xpubkey, parse_xpubkey
+        from electrum_arg.keystore import is_xpubkey, parse_xpubkey
+        from electrum_arg.transaction import x_to_xpub
         xpub_set = set([])
         for txin in tx.inputs():
             for x_pubkey in txin['x_pubkeys']:

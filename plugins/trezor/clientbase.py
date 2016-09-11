@@ -1,10 +1,15 @@
 import time
 from struct import pack
 
-from electrum.i18n import _
-from electrum.util import PrintError, UserCancelled
-from electrum.keystore import bip39_normalize_passphrase
-from electrum.bitcoin import EncodeBase58Check
+<<<<<<< HEAD
+from electrum_arg.i18n import _
+from electrum_arg.util import PrintError, UserCancelled
+from electrum_arg.keystore import bip39_normalize_passphrase
+from electrum_arg.bitcoin import EncodeBase58Check, DecodeBase58Check, bc_address_to_hash_160, hash_160_to_bc_address, TYPE_ADDRESS
+=======
+from electrum_arg.i18n import _
+from electrum_arg.util import PrintError, UserCancelled
+>>>>>>> 1f17654d5b87b83f7ebd13b4fc56b48593b770b7
 
 
 class GuiMixin(object):
@@ -59,7 +64,7 @@ class GuiMixin(object):
             msg = _("Enter a passphrase to generate this wallet.  Each time "
                     "you use this wallet your %s will prompt you for the "
                     "passphrase.  If you forget the passphrase you cannot "
-                    "access the bitcoins in the wallet.") % self.device
+                    "access the argentums in the wallet.") % self.device
         else:
             msg = _("Enter the passphrase to unlock this wallet:")
         passphrase = self.handler.get_passphrase(msg, self.creating_wallet)
@@ -147,6 +152,7 @@ class TrezorClientBase(GuiMixin, PrintError):
     def i4b(self, x):
         return pack('>I', x)
 
+<<<<<<< HEAD
     def get_xpub(self, bip32_path):
         address_n = self.expand_path(bip32_path)
         creating = False #self.next_account_number() == 0
@@ -158,6 +164,10 @@ class TrezorClientBase(GuiMixin, PrintError):
 
     #def address_from_derivation(self, derivation):
     #    return self.get_address('Bitcoin', self.expand_path(derivation))
+=======
+    def address_from_derivation(self, derivation):
+        return self.get_address('Argentum', self.expand_path(derivation))
+>>>>>>> 1f17654d5b87b83f7ebd13b4fc56b48593b770b7
 
     def toggle_passphrase(self):
         if self.features.passphrase_protection:

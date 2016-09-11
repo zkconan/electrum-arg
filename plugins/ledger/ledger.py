@@ -3,14 +3,18 @@ from struct import pack, unpack
 import hashlib
 import time
 
-import electrum
-from electrum.bitcoin import EncodeBase58Check, DecodeBase58Check, TYPE_ADDRESS, int_to_hex, var_int
-from electrum.i18n import _
-from electrum.plugins import BasePlugin, hook
+import electrum_arg as electrum
+from electrum_arg.bitcoin import EncodeBase58Check, DecodeBase58Check, bc_address_to_hash_160, hash_160_to_bc_address, TYPE_ADDRESS
+from electrum_arg.i18n import _
+from electrum_arg.plugins import BasePlugin, hook
 from electrum.keystore import Hardware_KeyStore
 from ..hw_wallet import HW_PluginBase
-from electrum.util import format_satoshis_plain, print_error
+from electrum_arg.util import format_satoshis_plain, print_error
 
+
+def setAlternateCoinVersions(self, regular, p2sh):
+    apdu = [ self.BTCHIP_CLA, 0x14, 0x00, 0x00, 0x02, regular, p2sh ]
+    self.dongle.exchange(bytearray(apdu))
 
 try:
     import hid
@@ -21,6 +25,7 @@ try:
     from btchip.btchipPersoWizard import StartBTChipPersoDialog
     from btchip.btchipFirmwareWizard import checkFirmware, updateFirmware
     from btchip.btchipException import BTChipException
+    btchip.setAlternateCoinVersions = setAlternateCoinVersions
     BTCHIP = True
     BTCHIP_DEBUG = False
 except ImportError:
@@ -310,7 +315,11 @@ class Ledger_KeyStore(Hardware_KeyStore):
                         self.give_error("Multiple outputs with no change not supported")
                     output = address
                     outputAmount = amount
-        
+                
+        self.get_client() # prompt for the PIN before displaying the dialog if necessary
+        if not self.check_proper_device():
+            self.give_error('Wrong device or password')
+
         self.handler.show_message("Signing Transaction ...")
         try:
             # Get trusted inputs from the original transactions
@@ -399,6 +408,25 @@ class Ledger_KeyStore(Hardware_KeyStore):
         tx.update_signatures(updatedTransaction)
         self.signing = False
 
+    def check_proper_device(self):
+        pubKey = DecodeBase58Check(self.master_public_keys["x/0'"])[45:]
+        if not self.device_checked:
+            self.handler.show_message("Checking device")
+            try:
+                nodeData = self.get_client().getWalletPublicKey("44'/2'/0'")
+            except Exception, e:
+                self.give_error(e, True)
+            finally:
+                self.handler.clear_dialog()
+            pubKeyDevice = compress_public_key(nodeData['publicKey'])
+            self.device_checked = True
+            if pubKey != pubKeyDevice:
+                self.proper_device = False
+            else:
+                self.proper_device = True
+
+        return self.proper_device
+
     def password_dialog(self, msg=None):
         if not msg:
             msg = _("Do not enter your device PIN here !\r\n\r\n" \
@@ -477,18 +505,50 @@ class LedgerPlugin(HW_PluginBase):
         xpub = client.get_xpub(derivation)
         return xpub
 
-    def get_client(self, keystore, force_pair=True):
-        # All client interaction should not be in the main GUI thread
-        #assert self.main_thread != threading.current_thread()
-        devmgr = self.device_manager()
-        handler = keystore.handler
-        handler = keystore.handler
-        with devmgr.hid_lock:
-            client = devmgr.client_for_keystore(self, handler, keystore, force_pair)        
-        # returns the client for a given keystore. can use xpub
-        #if client:
-        #    client.used()
-        if client <> None:
-            client.checkDevice()
-            client = client.dongleObject            
-        return client
+    def get_client(self, wallet, force_pair=True, noPin=False):
+        aborted = False
+        client = self.client
+        if not client or client.bad:
+            try:
+                d = getDongle(BTCHIP_DEBUG)
+                client = btchip(d)
+                ver = client.getFirmwareVersion()
+                firmware = ver['version'].split(".")
+                wallet.canAlternateCoinVersions = (ver['specialVersion'] >= 0x20 and
+                                                   map(int, firmware) >= [1, 0, 1])
+                if not checkFirmware(firmware):
+                    d.close()
+                    try:
+                        updateFirmware()
+                    except Exception, e:
+                        aborted = True
+                        raise e
+                    d = getDongle(BTCHIP_DEBUG)
+                    client = btchip(d)
+                try:
+                    client.getOperationMode()
+                except BTChipException, e:
+                    if (e.sw == 0x6985):
+                        d.close()
+                        dialog = StartBTChipPersoDialog()
+                        dialog.exec_()
+                        # Then fetch the reference again  as it was invalidated
+                        d = getDongle(BTCHIP_DEBUG)
+                        client = btchip(d)
+                    else:
+                        raise e
+                if not noPin:
+                    # Immediately prompts for the PIN
+                    remaining_attempts = client.getVerifyPinRemainingAttempts()
+                    if remaining_attempts <> 1:
+                        msg = "Enter your Ledger PIN - remaining attempts : " + str(remaining_attempts)
+                    else:
+                        msg = "Enter your Ledger PIN - WARNING : LAST ATTEMPT. If the PIN is not correct, the dongle will be wiped."
+                    confirmed, p, pin = wallet.password_dialog(msg)
+                    if not confirmed:
+                        aborted = True
+                        raise Exception('Aborted by user - please unplug the dongle and plug it again before retrying')
+                    pin = pin.encode()
+                    client.verifyPin(pin)
+                    if wallet.canAlternateCoinVersions:
+                        client.setAlternateCoinVersions(23, 5)

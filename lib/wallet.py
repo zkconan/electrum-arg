@@ -784,8 +784,8 @@ class Abstract_Wallet(PrintError):
         return status, status_str
 
     def relayfee(self):
-        RELAY_FEE = 5000
-        MAX_RELAY_FEE = 50000
+        RELAY_FEE = bitcoin.MIN_RELAY_TX_FEE
+        MAX_RELAY_FEE = 10 * RELAY_FEE
         f = self.network.relay_fee if self.network and self.network.relay_fee else RELAY_FEE
         return min(f, MAX_RELAY_FEE)
 
@@ -798,7 +798,7 @@ class Abstract_Wallet(PrintError):
         for type, data, value in outputs:
             if type == TYPE_ADDRESS:
                 if not is_address(data):
-                    raise BaseException("Invalid bitcoin address:" + data)
+                    raise BaseException("Invalid argentum address:" + data)
 
         # Avoid index-out-of-range with coins[0] below
         if not coins:
@@ -825,12 +825,12 @@ class Abstract_Wallet(PrintError):
 
         # Fee estimator
         if fixed_fee is None:
-            fee_estimator = partial(self.estimate_fee, config)
+            fee_estimator = partial(self.estimate_fee, config, outputs=outputs)
         else:
             fee_estimator = lambda size: fixed_fee
 
         # Change <= dust threshold is added to the tx fee
-        dust_threshold = 182 * 3 * self.relayfee() / 1000
+        dust_threshold = DUST_SOFT_LIMIT
 
         # Let the coin chooser select the coins to spend
         max_change = self.max_change_outputs if self.multiple_change else 1
@@ -844,8 +844,11 @@ class Abstract_Wallet(PrintError):
         run_hook('make_unsigned_transaction', self, tx)
         return tx
 
-    def estimate_fee(self, config, size):
+    def estimate_fee(self, config, size, outputs=[]):
         fee = int(self.fee_per_kb(config) * size / 1000.)
+        for _, _, value in outputs:
+            if value < DUST_SOFT_LIMIT:
+                fee += DUST_SOFT_LIMIT
         return fee
 
     def mktx(self, outputs, password, config, fee=None, change_addr=None, domain=None):
@@ -1037,7 +1040,7 @@ class Abstract_Wallet(PrintError):
         if not r:
             return
         out = copy.copy(r)
-        out['URI'] = 'bitcoin:' + addr + '?amount=' + util.format_satoshis(out.get('amount'))
+        out['URI'] = 'argentum:' + addr + '?amount=' + util.format_satoshis(out.get('amount'))
         out['status'] = self.get_request_status(addr)
         # check if bip70 file exists
         rdir = config.get('requests_dir')
@@ -1566,4 +1569,3 @@ class Wallet(object):
         if wallet_type in wallet_constructors:
             return wallet_constructors[wallet_type]
         raise RuntimeError("Unknown wallet type: " + wallet_type)
-

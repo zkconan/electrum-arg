@@ -3,18 +3,18 @@ from kivy.factory import Factory
 from kivy.properties import ObjectProperty
 from kivy.lang import Builder
 
-from electrum.util import base_units
-from electrum.i18n import languages
-from electrum_gui.kivy.i18n import _
-from electrum.plugins import run_hook
-from electrum.bitcoin import RECOMMENDED_FEE
-from electrum import coinchooser
+from electrum_arg.util import base_units
+from electrum_arg.i18n import languages
+from electrum_arg_gui.kivy.i18n import _
+from electrum_arg.plugins import run_hook
+from electrum_arg.bitcoin import RECOMMENDED_FEE
+from electrum_arg import coinchooser
 
 from choice_dialog import ChoiceDialog
 
 Builder.load_string('''
 #:import partial functools.partial
-#:import _ electrum_gui.kivy.i18n._
+#:import _ electrum_arg_gui.kivy.i18n._
 
 <SettingsItem@ButtonBehavior+BoxLayout>
     orientation: 'vertical'
@@ -75,13 +75,13 @@ Builder.load_string('''
                 SettingsItem:
                     bu: app.base_unit
                     title: _('Denomination') + ': ' + self.bu
-                    description: _("Base unit for Bitcoin amounts.")
+                    description: _("Base unit for Argentum amounts.")
                     action: partial(root.unit_dialog, self)
                 CardSeparator
                 SettingsItem:
                     status: root.fee_status()
                     title: _('Fees') + ': ' + self.status
-                    description: _("Fees paid to the Bitcoin miners.")
+                    description: _("Fees paid to the Argentum miners.")
                     action: partial(root.fee_dialog, self)
                 CardSeparator
                 SettingsItem:

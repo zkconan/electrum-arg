@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # You probably need to update only this link
-ELECTRUM_GIT_URL=git://github.com/spesmilo/electrum.git
+ELECTRUM_GIT_URL=git://github.com/argentumproject/electrum-arg.git
 BRANCH=master
-NAME_ROOT=electrum
+NAME_ROOT=electrum-arg
 
 
 # These settings probably don't need any change

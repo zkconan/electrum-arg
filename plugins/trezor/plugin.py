@@ -5,16 +5,14 @@ import threading
 from binascii import hexlify, unhexlify
 from functools import partial
 
-from electrum.bitcoin import (bc_address_to_hash_160, xpub_from_pubkey,
+from electrum_arg.bitcoin import (bc_address_to_hash_160, xpub_from_pubkey,
                               public_key_to_bc_address, EncodeBase58Check,
                               TYPE_ADDRESS, TYPE_SCRIPT)
-from electrum.i18n import _
-from electrum.plugins import BasePlugin, hook
-from electrum.transaction import deserialize, Transaction
-from electrum.keystore import Hardware_KeyStore, is_xpubkey, parse_xpubkey
-
+from electrum_arg.i18n import _
+from electrum_arg.plugins import BasePlugin, hook
+from electrum_arg.transaction import deserialize, Transaction
+from electrum_arg.keystore import Hardware_KeyStore, is_xpubkey, parse_xpubkey
 from ..hw_wallet import HW_PluginBase
-
 
 # TREZOR initialization methods
 TIM_NEW, TIM_RECOVER, TIM_MNEMONIC, TIM_PRIVKEY = range(0, 4)
@@ -42,7 +40,7 @@ class TrezorCompatibleKeyStore(Hardware_KeyStore):
         client = self.get_client()
         address_path = self.get_derivation() + "/%d/%d"%sequence
         address_n = client.expand_path(address_path)
-        msg_sig = client.sign_message('Bitcoin', address_n, message)
+        msg_sig = client.sign_message('Argentum', address_n, message)
         return msg_sig.signature
 
     def sign_transaction(self, tx, password):
@@ -233,7 +231,7 @@ class TrezorCompatiblePlugin(HW_PluginBase):
         client = self.get_client(keystore)
         inputs = self.tx_inputs(tx, True)
         outputs = self.tx_outputs(keystore.get_derivation(), tx)
-        signed_tx = client.sign_tx('Bitcoin', inputs, outputs)[1]
+        signed_tx = client.sign_tx('Argentum', inputs, outputs)[1]
         raw = signed_tx.encode('hex')
         tx.update_signatures(raw)
 
@@ -246,7 +244,7 @@ class TrezorCompatiblePlugin(HW_PluginBase):
         derivation = wallet.keystore.derivation
         address_path = "%s/%d/%d"%(derivation, change, index)
         address_n = client.expand_path(address_path)
-        client.get_address('Bitcoin', address_n, True)
+        client.get_address('Argentum', address_n, True)
 
     def tx_inputs(self, tx, for_sig=False):
         inputs = []
@@ -326,7 +324,7 @@ class TrezorCompatiblePlugin(HW_PluginBase):
                 else:
                     txoutputtype.address = address
                 addrtype, hash_160 = bc_address_to_hash_160(address)
-                if addrtype == 0:
+                if addrtype == 23:
                     txoutputtype.script_type = self.types.PAYTOADDRESS
                 elif addrtype == 5:
                     txoutputtype.script_type = self.types.PAYTOSCRIPTHASH

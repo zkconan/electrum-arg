@@ -38,9 +38,11 @@ import aes
 
 ################################## transactions
 
+DUST_SOFT_LIMIT = 100000000
+MIN_RELAY_TX_FEE = 500000
 FEE_STEP = 10000
-RECOMMENDED_FEE = 50000
-COINBASE_MATURITY = 100
+RECOMMENDED_FEE = 500000
+COINBASE_MATURITY = 30
 COIN = 100000000
 
 # supported types of transction outputs
@@ -221,7 +223,7 @@ def public_key_to_bc_address(public_key):
     h160 = hash_160(public_key)
     return hash_160_to_bc_address(h160)
 
-def hash_160_to_bc_address(h160, addrtype = 0):
+def hash_160_to_bc_address(h160, addrtype = 23):
     vh160 = chr(addrtype) + h160
     h = Hash(vh160)
     addr = vh160 + h[0:4]
@@ -309,12 +311,12 @@ def PrivKeyToSecret(privkey):
     return privkey[9:9+32]
 
 
-def SecretToASecret(secret, compressed=False, addrtype=0):
+def SecretToASecret(secret, compressed=False, addrtype=23):
     vchIn = chr((addrtype+128)&255) + secret
     if compressed: vchIn += '\01'
     return EncodeBase58Check(vchIn)
 
-def ASecretToSecret(key, addrtype=0):
+def ASecretToSecret(key, addrtype=23):
     vch = DecodeBase58Check(key)
     if vch and vch[0] == chr((addrtype+128)&255):
         return vch[1:]
@@ -371,7 +373,7 @@ def is_address(addr):
         addrtype, h = bc_address_to_hash_160(addr)
     except Exception:
         return False
-    if addrtype not in [0, 5]:
+    if addrtype not in [23, 5]:
         return False
     return addr == hash_160_to_bc_address(h, addrtype)
 
@@ -407,7 +409,7 @@ from ecdsa.util import string_to_number, number_to_string
 def msg_magic(message):
     varint = var_int(len(message))
     encoded_varint = "".join([chr(int(varint[i:i+2], 16)) for i in xrange(0, len(varint), 2)])
-    return "\x18Bitcoin Signed Message:\n" + encoded_varint + message
+    return "\x19Argentum Signed Message:\n" + encoded_varint + message
 
 
 def verify_message(address, sig, message):
@@ -693,6 +695,15 @@ TESTNET_HEADER_PUB = "043587cf"
 BITCOIN_HEADERS = (BITCOIN_HEADER_PUB, BITCOIN_HEADER_PRIV)
 TESTNET_HEADERS = (TESTNET_HEADER_PUB, TESTNET_HEADER_PRIV)
 
+BITCOIN_HEADER_ALT_PRIV = "019d9cfe"
+BITCOIN_HEADER_ALT_PUB = "019da462"
+
+TESTNET_HEADER_ALT_PRIV = "0436ef7d"
+TESTNET_HEADER_ALT_PUB = "0436f6e1"
+
+BITCOIN_HEADERS_ALT = (BITCOIN_HEADER_ALT_PUB, BITCOIN_HEADER_ALT_PRIV)
+TESTNET_HEADERS_ALT = (TESTNET_HEADER_ALT_PUB, TESTNET_HEADER_ALT_PRIV)
+
 def _get_headers(testnet):
     """Returns the correct headers for either testnet or bitcoin, in the form
     of a 2-tuple, like (public, private)."""
@@ -713,6 +724,10 @@ def deserialize_xkey(xkey):
         head = TESTNET_HEADER_PRIV
     elif xkey_header in BITCOIN_HEADERS:
         head = BITCOIN_HEADER_PRIV
+    elif xkey_header in TESTNET_HEADERS_ALT:
+        head = TESTNET_HEADER_ALT_PRIV
+    elif xkey_header in BITCOIN_HEADERS_ALT:
+        head = BITCOIN_HEADER_ALT_PRIV
     else:
         raise Exception("Unknown xkey header: '%s'" % xkey_header)
 

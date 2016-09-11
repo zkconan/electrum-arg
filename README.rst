@@ -1,17 +1,14 @@
-Electrum - Lightweight Bitcoin client
-=====================================
+Electrum-ARG - Lightweight Argentum client
+==========================================
 
 ::
 
   Licence: MIT Licence
-  Author: Thomas Voegtlin
+  Original Author: Thomas Voegtlin
+  Port Maintainer: Protonn
   Language: Python
-  Homepage: https://electrum.org/
+  Homepage: https://www.github.com/argentumproject/electrum-arg
 
-
-.. image:: https://travis-ci.org/spesmilo/electrum.svg?branch=master
-    :target: https://travis-ci.org/spesmilo/electrum
-    :alt: Build Status
 
 
 
@@ -30,7 +27,7 @@ Electrum from its root directory, without installing it on your
 system; all the python dependencies are included in the 'packages'
 directory. To run Electrum from its root directory, just do::
 
-    ./electrum
+    ./electrum-arg
 
 If you cloned the git repository, then you need to compile extra files
 before you can run Electrum. Read the next section, "Development
@@ -43,8 +40,8 @@ Development version
 
 Check out the code from Github::
 
-    git clone git://github.com/spesmilo/electrum.git
-    cd electrum
+    git clone git://github.com/argentumproject/electrum-arg.git
+    cd electrum-arg
 
 Run install (this should install dependencies)::
 
@@ -76,7 +73,7 @@ directory.
 If you have pip, you can do::
 
     python setup.py sdist
-    sudo pip install --pre dist/Electrum-2.0.tar.gz
+    sudo pip install --pre dist/Electrum-ARG-2.0.tar.gz
 
 
 If you don't have pip, install with::
@@ -107,7 +104,7 @@ Mac OS X
     # On Homebrew installs: 
     ARCHFLAGS="-arch i386 -arch x86_64" sudo python setup-release.py py2app --includes sip
     
-    sudo hdiutil create -fs HFS+ -volname "Electrum" -srcfolder dist/Electrum.app dist/electrum-VERSION-macosx.dmg
+    sudo hdiutil create -fs HFS+ -volname "Electrum-ARG" -srcfolder dist/Electrum-ARG.app dist/electrum-arg-VERSION-macosx.dmg
 
 Windows
 -------

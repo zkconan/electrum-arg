@@ -1,11 +1,11 @@
 from PyQt4.QtGui import *
-from electrum.plugins import BasePlugin, hook
-from electrum.i18n import _
+from electrum_arg.plugins import BasePlugin, hook
+from electrum_arg.i18n import _
 
 
 import datetime
-from electrum.util import format_satoshis
-from electrum.bitcoin import COIN
+from electrum_arg.util import format_satoshis
+from electrum_arg.bitcoin import COIN
 
 try:
     import matplotlib.pyplot as plt
@@ -53,7 +53,7 @@ class Plugin(BasePlugin):
                 if timestamp is not None:
                     try:
                         datenums.append(md.date2num(datetime.datetime.fromtimestamp(timestamp)))
-                        balance_Val.append(1000.*balance/COIN)
+                        balance_Val.append(1.*balance/COIN)
                     except [RuntimeError, TypeError, NameError] as reason:
                         unknown_trans += 1
                         pass
@@ -62,7 +62,7 @@ class Plugin(BasePlugin):
             else:
                 pending_trans += 1
 
-            value_val.append(1000.*value/COIN)
+            value_val.append(1.*value/COIN)
             if tx_hash:
                 label = wallet.get_label(tx_hash)
                 label = label.encode('utf-8')
@@ -97,7 +97,7 @@ class Plugin(BasePlugin):
         ax.add_artist(anchored_box)
 
 
-        plt.ylabel('mBTC')
+        plt.ylabel('ARG')
         plt.xlabel('Dates')
         xfmt = md.DateFormatter('%Y-%m-%d')
         ax.xaxis.set_major_formatter(xfmt)

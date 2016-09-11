@@ -28,12 +28,12 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
         else:
             usr_share = os.path.expanduser('~/.local/share')
     data_files += [
-        (os.path.join(usr_share, 'applications/'), ['electrum.desktop']),
-        (os.path.join(usr_share, 'pixmaps/'), ['icons/electrum.png'])
+        (os.path.join(usr_share, 'applications/'), ['electrum-arg.desktop']),
+        (os.path.join(usr_share, 'pixmaps/'), ['icons/electrum-arg.png'])
     ]
 
 setup(
-    name="Electrum",
+    name="Electrum-ARG",
     version=version.ELECTRUM_VERSION,
     install_requires=[
         'slowaes>=0.1a1',
@@ -41,47 +41,46 @@ setup(
         'pbkdf2',
         'requests',
         'qrcode',
+        'ltc_scrypt',
         'protobuf',
         'dnspython',
         'jsonrpclib',
     ],
     packages=[
-        'electrum',
-        'electrum_gui',
-        'electrum_gui.qt',
-        'electrum_plugins',
-        'electrum_plugins.audio_modem',
-        'electrum_plugins.cosigner_pool',
-        'electrum_plugins.email_requests',
-        'electrum_plugins.exchange_rate',
-        'electrum_plugins.greenaddress_instant',
-        'electrum_plugins.hw_wallet',
-        'electrum_plugins.keepkey',
-        'electrum_plugins.labels',
-        'electrum_plugins.ledger',
-        'electrum_plugins.plot',
-        'electrum_plugins.trezor',
-        'electrum_plugins.trustedcoin',
-        'electrum_plugins.virtualkeyboard',
+        'electrum_arg',
+        'electrum_arg_gui',
+        'electrum_arg_gui.qt',
+        'electrum_arg_plugins',
+        'electrum_arg_plugins.audio_modem',
+        'electrum_arg_plugins.cosigner_pool',
+        'electrum_arg_plugins.email_requests',
+        'electrum_arg_plugins.exchange_rate',
+        'electrum_arg_plugins.hw_wallet',
+        'electrum_arg_plugins.keepkey',
+        'electrum_arg_plugins.labels',
+        'electrum_arg_plugins.ledger',
+        'electrum_arg_plugins.plot',
+        'electrum_arg_plugins.trezor',
+        'electrum_arg_plugins.virtualkeyboard',
     ],
     package_dir={
-        'electrum': 'lib',
-        'electrum_gui': 'gui',
-        'electrum_plugins': 'plugins',
+        'electrum_arg': 'lib',
+        'electrum_arg_gui': 'gui',
+        'electrum_arg_plugins': 'plugins',
     },
     package_data={
-        'electrum': [
+        'electrum_arg': [
             'www/index.html',
             'wordlist/*.txt',
             'locale/*/LC_MESSAGES/electrum.mo',
         ]
     },
-    scripts=['electrum'],
+    scripts=['electrum-arg'],
     data_files=data_files,
-    description="Lightweight Bitcoin Wallet",
+    description="Lightweight Argentum Wallet",
     author="Thomas Voegtlin",
     author_email="thomasv@electrum.org",
     license="MIT Licence",
-    url="https://electrum.org",
-    long_description="""Lightweight Bitcoin Wallet"""
+    url="http://www.github.com/argentumproject/electrum-arg",
+    long_description="""Lightweight Argentum Wallet"""
 )

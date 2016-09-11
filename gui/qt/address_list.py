@@ -27,10 +27,10 @@
 import webbrowser
 
 from util import *
-from electrum.i18n import _
-from electrum.util import block_explorer_URL, format_satoshis, format_time
-from electrum.plugins import run_hook
-from electrum.bitcoin import is_address
+from electrum_arg.i18n import _
+from electrum_arg.util import block_explorer_URL, format_satoshis, format_time
+from electrum_arg.plugins import run_hook
+from electrum_arg.bitcoin import is_address
 
 
 class AddressList(MyTreeWidget):
@@ -95,7 +95,7 @@ class AddressList(MyTreeWidget):
                         address_item.addChild(utxo_item)
 
     def create_menu(self, position):
-        from electrum.wallet import Multisig_Wallet, Imported_Wallet
+        from electrum_arg.wallet import Multisig_Wallet, Imported_Wallet
         is_multisig = isinstance(self.wallet, Multisig_Wallet)
         is_imported = isinstance(self.wallet, Imported_Wallet)
         selected = self.selectedItems()

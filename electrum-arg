@@ -77,19 +77,18 @@ if not is_android:
 # load local module as electrum
 if is_bundle or is_local or is_android:
     import imp
-    imp.load_module('electrum', *imp.find_module('lib'))
-    imp.load_module('electrum_gui', *imp.find_module('gui'))
+    imp.load_module('electrum_arg', *imp.find_module('lib'))
+    imp.load_module('electrum_arg_gui', *imp.find_module('gui'))
 
-
-from electrum import SimpleConfig, Network
-from electrum.wallet import Wallet
-from electrum.storage import WalletStorage
-from electrum.util import print_msg, print_stderr, json_encode, json_decode
-from electrum.util import set_verbosity, InvalidPassword, check_www_dir
-from electrum.commands import get_parser, known_commands, Commands, config_variables
-from electrum import daemon
-from electrum import keystore
-from electrum.mnemonic import Mnemonic
+from electrum_arg import SimpleConfig, Network
+from electrum_arg.wallet import Wallet
+from electrum_arg.storage import WalletStorage
+from electrum_arg.util import print_msg, print_stderr, json_encode, json_decode
+from electrum_arg.util import set_verbosity, InvalidPassword, check_www_dir
+from electrum_arg.commands import get_parser, known_commands, Commands, config_variables
+from electrum_arg import daemon
+from electrum_arg import keystore
+from electrum_arg.mnemonic import Mnemonic
 
 # get password routine
 def prompt_password(prompt, confirm=True):
@@ -204,7 +203,7 @@ def init_cmdline(config_options):
 
     if cmd.requires_wallet and not storage.file_exists:
         print_msg("Error: Wallet file not found.")
-        print_msg("Type 'electrum create' to create a new wallet, or provide a path to a wallet with the -w option")
+        print_msg("Type 'electrum-arg create' to create a new wallet, or provide a path to a wallet with the -w option")
         sys.exit(0)
 
     # important warning
@@ -266,7 +265,7 @@ def run_offline_command(config, config_options):
     return result
 
 def init_plugins(config, gui_name):
-    from electrum.plugins import Plugins
+    from electrum_arg.plugins import Plugins
     return Plugins(config, is_bundle or is_local or is_android, gui_name)
 
 if __name__ == '__main__':
@@ -314,14 +313,14 @@ if __name__ == '__main__':
     config_options['cwd'] = os.getcwd()
 
     if config_options.get('portable'):
-        config_options['electrum_path'] = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'electrum_data')
+        config_options['electrum_path'] = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'electrum-arg_data')
 
     set_verbosity(config_options.get('verbose'))
 
     # check uri
     uri = config_options.get('url')
     if uri:
-        if not uri.startswith('bitcoin:'):
+        if not uri.startswith('argentum:'):
             print_stderr('unknown command:', uri)
             sys.exit(1)
         config_options['url'] = uri
@@ -359,7 +358,7 @@ if __name__ == '__main__':
                 d = daemon.Daemon(config, fd)
                 d.start()
                 if config.get('websocket_server'):
-                    from electrum import websockets
+                    from electrum_arg import websockets
                     websockets.WebSocketServer(config, d.network).start()
                 if config.get('requests_dir'):
                     check_www_dir(config.get('requests_dir'))
@@ -383,7 +382,7 @@ if __name__ == '__main__':
         else:
             cmd = known_commands[cmdname]
             if cmd.requires_network:
-                print_msg("Daemon not running; try 'electrum daemon start'")
+                print_msg("Daemon not running; try 'electrum-arg daemon start'")
                 sys.exit(1)
             else:
                 init_plugins(config, 'cmdline')
