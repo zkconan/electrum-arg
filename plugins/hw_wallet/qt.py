@@ -171,8 +171,8 @@ class QtHandlerBase(QObject, PrintError):
 
 
 
-from electrum.plugins import hook
-from electrum_gui.qt.main_window import StatusBarButton
+from electrum_arg.plugins import hook
+from electrum_arg_gui.qt.main_window import StatusBarButton
 
 class QtPluginBase(object):
 

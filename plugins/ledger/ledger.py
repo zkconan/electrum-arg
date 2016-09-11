@@ -7,7 +7,7 @@ import electrum_arg as electrum
 from electrum_arg.bitcoin import EncodeBase58Check, DecodeBase58Check, bc_address_to_hash_160, hash_160_to_bc_address, TYPE_ADDRESS
 from electrum_arg.i18n import _
 from electrum_arg.plugins import BasePlugin, hook
-from electrum.keystore import Hardware_KeyStore
+from electrum_arg.keystore import Hardware_KeyStore
 from ..hw_wallet import HW_PluginBase
 from electrum_arg.util import format_satoshis_plain, print_error
 

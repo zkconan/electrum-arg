@@ -7,7 +7,7 @@ import PyQt4.QtCore as QtCore
 
 import electrum_arg as electrum
 from electrum_arg.wallet import Wallet
-from electrum_arg.mnemonic import prepare_seed
+from electrum_arg.mnemonic import Mnemonic
 from electrum_arg.util import UserCancelled
 from electrum_arg.base_wizard import BaseWizard
 from electrum_arg.i18n import _
