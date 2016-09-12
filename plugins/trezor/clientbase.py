@@ -1,15 +1,10 @@
 import time
 from struct import pack
 
-<<<<<<< HEAD
 from electrum_arg.i18n import _
 from electrum_arg.util import PrintError, UserCancelled
 from electrum_arg.keystore import bip39_normalize_passphrase
 from electrum_arg.bitcoin import EncodeBase58Check, DecodeBase58Check, bc_address_to_hash_160, hash_160_to_bc_address, TYPE_ADDRESS
-=======
-from electrum_arg.i18n import _
-from electrum_arg.util import PrintError, UserCancelled
->>>>>>> 1f17654d5b87b83f7ebd13b4fc56b48593b770b7
 
 
 class GuiMixin(object):

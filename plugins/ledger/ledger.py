@@ -552,3 +552,30 @@ class LedgerPlugin(HW_PluginBase):
                     client.verifyPin(pin)
                     if wallet.canAlternateCoinVersions:
                         client.setAlternateCoinVersions(23, 5)
+            except BTChipException, e:
+                try:
+                    client.dongle.close()
+                except:
+                    pass
+                client = None
+                if (e.sw == 0x6faa):
+                    raise Exception("Dongle is temporarily locked - please unplug it and replug it again")
+                if ((e.sw & 0xFFF0) == 0x63c0):
+                    raise Exception("Invalid PIN - please unplug the dongle and plug it again before retrying")
+                raise e
+            except Exception, e:
+                try:
+                    client.dongle.close()
+                except:
+                    pass
+                client = None
+                if not aborted:
+                    raise Exception("Could not connect to your Ledger wallet. Please verify access permissions, PIN, or unplug the dongle and plug it again")
+                else:
+                    raise e
+            client.bad = False
+            wallet.device_checked = False
+            wallet.proper_device = False
+            self.client = client
+
+        return self.client
