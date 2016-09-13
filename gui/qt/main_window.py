@@ -1043,7 +1043,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.fee_e.setAmount(fee)
 
     def update_fee_edit(self):
-        b = self.config.get('dynamic_fees', True)
+        b = self.config.get('dynamic_fees', False)
         self.fee_slider.setVisible(b)
         self.fee_e.setVisible(not b)
 
