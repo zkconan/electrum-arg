@@ -82,7 +82,7 @@ class BTCAmountEdit(AmountEdit):
         if p == 5:
             return 'mARG'
         if p == 2:
-            return 'bits'
+            return 'uARG'
         raise Exception('Unknown base unit')
 
     def get_amount(self):
