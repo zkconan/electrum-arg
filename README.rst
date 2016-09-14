@@ -45,22 +45,22 @@ Check out the code from Github::
 
 Run install (this should install dependencies)::
 
-    python setup.py install
+    sudo python setup.py install
 
 Compile the icons file for Qt::
 
     sudo apt-get install pyqt4-dev-tools
-    pyrcc4 icons.qrc -o gui/qt/icons_rc.py
+    sudo pyrcc4 icons.qrc -o gui/qt/icons_rc.py
 
 Compile the protobuf description file::
 
     sudo apt-get install protobuf-compiler
-    protoc --proto_path=lib/ --python_out=lib/ lib/paymentrequest.proto
+    sudo protoc --proto_path=lib/ --python_out=lib/ lib/paymentrequest.proto
 
 Create translations::
 
     sudo apt-get install python-pycurl gettext
-    ./contrib/make_locale
+    sudo ./contrib/make_locale
 
 
 
@@ -72,13 +72,13 @@ directory.
 
 If you have pip, you can do::
 
-    python setup.py sdist
+    sudo -H python setup.py sdist
     sudo pip install --pre dist/Electrum-ARG-2.0.tar.gz
 
 
 If you don't have pip, install with::
 
-    python setup.py sdist
+    sudo python setup.py sdist
     sudo python setup.py install
 
 
@@ -89,7 +89,7 @@ Creating Binaries
 
 In order to create binaries, you must create the 'packages' directory::
 
-    ./contrib/make_packages
+    sudo ./contrib/make_packages
 
 This directory contains the python dependencies used by Electrum.
 
