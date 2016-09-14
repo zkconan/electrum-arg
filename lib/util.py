@@ -36,7 +36,6 @@ import threading
 from i18n import _
 
 base_units = {'ARG':8, 'mARG':5, 'uARG':2}
-fee_levels = [_('Within 25 blocks'), _('Within 10 blocks'), _('Within 5 blocks'), _('Within 2 blocks'), _('In the next block')]
 
 def normalize_version(v):
     return [int(x) for x in re.sub(r'(\.0+)*$','', v).split(".")]

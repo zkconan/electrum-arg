@@ -748,12 +748,7 @@ class Abstract_Wallet(PrintError):
         return ''
 
     def fee_per_kb(self, config):
-        b = config.get('dynamic_fees', False)
-        i = config.get('fee_level', 2)
-        if b and self.network and self.network.dynfee(i):
-            return self.network.dynfee(i)
-        else:
-            return config.get('fee_per_kb', bitcoin.RECOMMENDED_FEE)
+        return config.get('fee_per_kb', bitcoin.RECOMMENDED_FEE)
 
     def get_tx_status(self, tx_hash, height, conf, timestamp):
         from util import format_time
@@ -761,10 +756,8 @@ class Abstract_Wallet(PrintError):
             tx = self.transactions.get(tx_hash)
             is_final = tx and tx.is_final()
             fee = self.tx_fees.get(tx_hash)
-            if fee and self.network and self.network.dynfee(0):
+            if fee and self.network:
                 size = len(tx.raw)/2
-                low_fee = int(self.network.dynfee(0)*size/1000)
-                is_lowfee = fee < low_fee * 0.5
             else:
                 is_lowfee = False
             if height==0 and not is_final:

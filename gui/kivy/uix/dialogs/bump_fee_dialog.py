@@ -4,7 +4,6 @@ from kivy.properties import ObjectProperty
 from kivy.lang import Builder
 
 from electrum_arg.bitcoin import FEE_STEP, RECOMMENDED_FEE
-from electrum_arg.util import fee_levels
 from electrum_arg_gui.kivy.i18n import _
 
 Builder.load_string('''
@@ -33,11 +32,6 @@ Builder.load_string('''
             id: tooltip
             text: ''
             size_hint_y: None
-        Slider:
-            id: slider
-            range: 0, 4
-            step: 1
-            on_value: root.on_slider(self.value)
         BoxLayout:
             orientation: 'horizontal'
             size_hint: 1, 0.2
@@ -73,37 +67,15 @@ class BumpFeeDialog(Factory.Popup):
         self.tx_size = size
         self.callback = callback
         self.config = app.electrum_config
-        self.dynfees = self.config.get('dynamic_fees', False) and self.app.network
         self.ids.old_fee.value = self.app.format_amount_and_units(self.init_fee)
-        self.update_slider()
         self.update_text()
 
     def update_text(self):
-        value = int(self.ids.slider.value)
+        value = int(value*self.tx_size/1000)
         self.ids.new_fee.value = self.app.format_amount_and_units(self.get_fee())
-        if self.dynfees:
-            value = int(self.ids.slider.value)
-            self.ids.tooltip.text = fee_levels[value]
-
-    def update_slider(self):
-        slider = self.ids.slider
-        if self.dynfees:
-            slider.range = (0, 4)
-            slider.step = 1
-            slider.value = 0
-        else:
-            slider.range = (FEE_STEP, 2*RECOMMENDED_FEE)
-            slider.step = FEE_STEP
-            slider.value = self.init_fee*1.5
 
     def get_fee(self):
-        value = int(self.ids.slider.value)
-        if self.dynfees:
-            dynfee = self.app.network.dynfee(value)
-            if dynfee:
-                return dynfee*self.tx_size/1000
-        else:
-            return value*self.tx_size/1000
+        return value*self.tx_size/1000
 
     def on_ok(self):
         new_fee = self.get_fee()
@@ -114,5 +86,4 @@ class BumpFeeDialog(Factory.Popup):
         self.update_text()
 
     def on_checkbox(self, b):
-        self.dynfees = b
         self.update_text()

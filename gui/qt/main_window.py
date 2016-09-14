@@ -893,49 +893,20 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
               + _('A suggested fee is automatically added to this field. You may override it. The suggested fee increases with the size of the transaction.')
         self.fee_e_label = HelpLabel(_('Fee'), msg)
 
-        self.fee_slider = QSlider(Qt.Horizontal, self)
-        self.fee_slider.setRange(0, 4)
-        self.fee_slider.setToolTip('')
-        def slider_moved():
-            from electrum_arg.util import fee_levels
-            i = self.fee_slider.sliderPosition()
-            tooltip = fee_levels[i]
-            dynfee = self.network.dynfee(i)
-            if dynfee:
-                tooltip += '\n' + self.format_amount(dynfee) + ' ' + self.base_unit() + '/kB'
-            QToolTip.showText(QCursor.pos(), tooltip, self.fee_slider)
-        def slider_released():
-            self.config.set_key('fee_level', self.fee_slider.sliderPosition(), False)
-            if self.is_max:
-                self.spend_max()
-            else:
-                self.update_fee()
-        self.fee_slider.valueChanged.connect(slider_moved)
-        self.fee_slider.sliderReleased.connect(slider_released)
-        self.fee_slider.setValue(self.config.get('fee_level', 2))
-
         self.fee_e = BTCAmountEdit(self.get_decimal_point)
         self.fee_e.textEdited.connect(self.update_fee)
         # This is so that when the user blanks the fee and moves on,
         # we go back to auto-calculate mode and put a fee back.
         self.fee_e.editingFinished.connect(self.update_fee)
 
-        self.rbf_checkbox = QCheckBox(_('Replaceable'))
-        msg = [_('If you check this box, your transaction will be marked as non-final,'),
-               _('and you will have the possiblity, while it is unconfirmed, to replace it with a transaction that pays a higher fee.'),
-               _('Note that some merchants do not accept non-final transactions until they are confirmed.')]
-        self.rbf_checkbox.setToolTip('<p>' + ' '.join(msg) + '</p>')
-        self.rbf_checkbox.setVisible(self.config.get('use_rbf', False))
-
         grid.addWidget(self.fee_e_label, 5, 0)
         grid.addWidget(self.fee_e, 5, 1)
-        grid.addWidget(self.fee_slider, 5, 1)
-        grid.addWidget(self.rbf_checkbox, 5, 2)
 
         self.preview_button = EnterButton(_("Preview"), self.do_preview)
         self.preview_button.setToolTip(_('Display the details of your transactions before signing it.'))
         self.send_button = EnterButton(_("Send"), self.do_send)
         self.clear_button = EnterButton(_("Clear"), self.do_clear)
+
         buttons = QHBoxLayout()
         buttons.addStretch(1)
         buttons.addWidget(self.clear_button)
@@ -987,6 +958,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         vbox.setStretchFactor(self.invoice_list, 1000)
 
         # Defer this until grid is parented to avoid ugly flash during startup
+
         self.update_fee_edit()
 
         run_hook('create_send_tab', grid)
@@ -1043,9 +1015,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.fee_e.setAmount(fee)
 
     def update_fee_edit(self):
-        b = self.config.get('dynamic_fees', False)
-        self.fee_slider.setVisible(b)
-        self.fee_e.setVisible(not b)
+        self.fee_e.setVisible
 
     def from_list_delete(self, item):
         i = self.from_list.indexOfTopLevelItem(item)
@@ -1585,7 +1555,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def update_buttons_on_seed(self):
         self.seed_button.setVisible(self.wallet.has_seed())
         self.password_button.setVisible(self.wallet.can_change_password())
-        self.send_button.setVisible(not self.wallet.is_watching_only())
 
     def change_password_dialog(self):
         from password_dialog import PasswordDialog, PW_CHANGE
@@ -2288,8 +2257,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         fee_label = HelpLabel(_('Transaction fee per kb') + ':', msg)
         fee_e = BTCkBEdit(self.get_decimal_point)
         def on_fee(is_done):
-            if self.config.get('dynamic_fees', True):
-                return
             v = fee_e.get_amount() or 0
             self.config.set_key('fee_per_kb', v, is_done)
             self.update_fee()
@@ -2297,20 +2264,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         fee_e.textEdited.connect(lambda: on_fee(False))
         fee_widgets.append((fee_label, fee_e))
 
-        dynfee_cb = QCheckBox(_('Use dynamic fees'))
-        dynfee_cb.setChecked(self.config.get('dynamic_fees', True))
-        dynfee_cb.setToolTip(_("Use a fee per kB value recommended by the server."))
-        fee_widgets.append((dynfee_cb, None))
         def update_feeperkb():
             fee_e.setAmount(self.config.get('fee_per_kb', bitcoin.RECOMMENDED_FEE))
-            b = self.config.get('dynamic_fees', True)
-            fee_e.setEnabled(not b)
-        def on_dynfee(x):
-            self.config.set_key('dynamic_fees', x == Qt.Checked)
-            update_feeperkb()
-            self.update_fee_edit()
-        dynfee_cb.stateChanged.connect(on_dynfee)
+            fee_e.setEnabled(True)
         update_feeperkb()
+
         #slider_moved()
 
         msg = _('OpenAlias record, used to receive coins and to sign payment requests.') + '\n\n'\
