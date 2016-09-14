@@ -321,28 +321,6 @@ class Network(util.DaemonThread):
             value = self.get_interfaces()
         return value
 
-    def dynfee(self, i):
-        from bitcoin import RECOMMENDED_FEE
-        if i < 4:
-            j = FEE_TARGETS[i]
-            fee = self.fee_estimates.get(j)
-        else:
-            assert i == 4
-            fee = self.fee_estimates.get(2)
-            if fee is not None:
-                fee += fee/2
-        if fee is not None:
-            fee = min(10*RECOMMENDED_FEE, fee)
-        return fee
-
-    def reverse_dynfee(self, fee_per_kb):
-        import operator
-        dist = map(lambda x: (x[0], abs(x[1] - fee_per_kb)), self.fee_estimates.items())
-        min_target, min_value = min(dist, key=operator.itemgetter(1))
-        if fee_per_kb < self.fee_estimates.get(25)/2:
-            min_target = -1
-        return min_target
-
     def notify(self, key):
         if key in ['status', 'updated']:
             self.trigger_callback(key)

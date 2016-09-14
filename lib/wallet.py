@@ -433,7 +433,6 @@ class Abstract_Wallet(PrintError):
                     if fee:
                         size = tx.estimated_size()
                         fee_per_kb = fee * 1000 / size
-                        exp_n = self.network.reverse_dynfee(fee_per_kb)
                     can_bump = is_mine and not tx.is_final()
             else:
                 status = _("Signed")
@@ -764,7 +763,7 @@ class Abstract_Wallet(PrintError):
                 status = 0
             elif height < 0:
                 status = 1
-            elif height == 0 and is_lowfee:
+            elif height == 1:
                 status = 2
             elif height == 0:
                 status = 3

@@ -802,15 +802,14 @@ class Transaction:
         fee = 0
         for addr, value in self.get_outputs():
             if value < DUST_SOFT_LIMIT:
-                fee = (1 + size / 1000) * MIN_RELAY_TX_FEE + MIN_RELAY_TX_FEE
-        threshold = 57600000*4
+                fee += (1 + size / 1000) * MIN_RELAY_TX_FEE
+        threshold = 768000000
         weight = 0
         for txin in self.inputs():
             height, conf, timestamp = wallet.get_tx_height(txin["prevout_hash"])
             weight += txin["value"] * conf
         priority = weight / size
         print_error(priority, threshold)
-
         if size < 26000 and fee == 0 and priority > threshold:
             return 0
         fee += (1 + size / 1000) * MIN_RELAY_TX_FEE
