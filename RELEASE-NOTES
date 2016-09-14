@@ -1,3 +1,8 @@
+# Release 2.7.1-Argentum (September 2016)
+ 
+ * Remove Dynamic Fee's and Replace-By-Fee as they will never be necessary for Argentum. De-clutters UI and avoids incompatibilities.
+ * Initial Argentum brand release.
+
 # Release 2.7.0 (August 2016)
 
  * The wallet file format is upgraded. This upgrade is not backward
