@@ -65,7 +65,6 @@ import paymentrequest
 from storage import WalletStorage
 
 TX_STATUS = [
-    _('Replaceable'),
     _('Unconfirmed parent'),
     _('Low fee'),
     _('Unconfirmed'),
@@ -772,7 +771,7 @@ class Abstract_Wallet(PrintError):
         else:
             status = 4 + min(conf, 6)
         time_str = format_time(timestamp) if timestamp else _("unknown")
-        status_str = TX_STATUS[status] if status < 5 else time_str
+        status_str = TX_STATUS[status] if status < 4 else time_str
         return status, status_str
 
     def relayfee(self):
