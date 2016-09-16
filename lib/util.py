@@ -347,20 +347,14 @@ def time_difference(distance_in_time, include_seconds):
         return "over %d years" % (round(distance_in_minutes / 525600))
 
 block_explorer_info = {
-    'explorer.argentum.net': ('http://explorer.argentum.net',
+    'BlockExperts': ('http://www.blockexperts.com/arg',
                         {'tx': 'tx', 'addr': 'address'}),
-    'block-explorer.com': ('https://block-explorer.com',
-                        {'tx': 'tx', 'addr': 'address'}),
-    'Blockr.io': ('https://arg.blockr.io',
-                        {'tx': 'tx/info', 'addr': 'address/info'}),
-    'SoChain': ('https://chain.so',
-                        {'tx': 'tx/ARG', 'addr': 'address/ARG'}),
-    'system default': ('blockchain:',
+    'system default': ('http://www.blockexperts.com/arg',
                         {'tx': 'tx', 'addr': 'address'}),
 }
 
 def block_explorer(config):
-    return config.get('block_explorer', 'explorer.argentum.net')
+    return config.get('block_explorer', 'http://www.blockexperts.com/arg')
 
 def block_explorer_tuple(config):
     return block_explorer_info.get(block_explorer(config))
