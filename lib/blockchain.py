@@ -175,6 +175,7 @@ class Blockchain(util.PrintError):
                 if h.get('block_height') == index*2016 - 1:
                     last = h
         assert last is not None
+        
         # bits to target
         bits = last.get('bits')
         bitsN = (bits >> 24) & 0xff
@@ -182,12 +183,14 @@ class Blockchain(util.PrintError):
         bitsBase = bits & 0xffffff
         assert bitsBase >= 0x8000 and bitsBase <= 0x7fffff, "Second part of bits should be in [0x8000, 0x7fffff]"
         target = bitsBase << (8 * (bitsN-3))
+        
         # new target
         nActualTimespan = last.get('timestamp') - first.get('timestamp')
-        nTargetTimespan = 84 * 60 * 60
-        nActualTimespan = max(nActualTimespan, nTargetTimespan / 4)
-        nActualTimespan = min(nActualTimespan, nTargetTimespan * 4)
+        nTargetTimespan = 10 * 90
+        nActualTimespan = max(nTargetTimespan * (100 + 22) / 100)
+        nActualTimespan = min(nTargetTimespan * (100 - 14) / 100)
         new_target = min(MAX_TARGET, (target*nActualTimespan) / nTargetTimespan)
+        
         # convert new target to bits
         c = ("%064x" % new_target)[2:]
         while c[:2] == '00' and len(c) > 6:
