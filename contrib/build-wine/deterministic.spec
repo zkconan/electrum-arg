@@ -1,6 +1,6 @@
 # -*- mode: python -*-
 
-home = 'C:\\electrum\\'
+home = 'C:\\electrum-arg\\'
 
 # We don't put these files in to actually include them in the script but to make the Analysis method scan them for imports
 a = Analysis([home+'electrum-arg',
