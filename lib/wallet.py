@@ -836,10 +836,10 @@ class Abstract_Wallet(PrintError):
         return tx
 
     def estimate_fee(self, config, size, outputs=[]):
-        fee = int(self.fee_per_kb(config) * size / 1000.)
+        fee = (1 + size / 1000) * int(self.fee_per_kb(config))
         for _, _, value in outputs:
             if value < DUST_SOFT_LIMIT:
-                fee += MIN_RELAY_TX_FEE
+                fee = (1 + size / 1000) * MIN_RELAY_TX_FEE + MIN_RELAY_TX_FEE
         return fee
 
     def mktx(self, outputs, password, config, fee=None, change_addr=None, domain=None):
