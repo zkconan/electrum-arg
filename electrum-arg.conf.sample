@@ -4,7 +4,7 @@
 # copy this file to /etc/electrum-arg.conf if you want read-only settings
 
 [client]
-server = 52.58.50.77:50001:t
+server = 52.58.50.77:50002:s
 proxy = None
 gap_limit = 5
 # booleans use python syntax
