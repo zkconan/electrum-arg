@@ -746,7 +746,7 @@ class Abstract_Wallet(PrintError):
         return ''
 
     def fee_per_kb(self, config):
-        return config.get('fee_per_kb', bitcoin.RECOMMENDED_FEE)
+        return config.get('fee_per_kb', bitcoin.MIN_RELAY_TX_FEE)
 
     def get_tx_status(self, tx_hash, height, conf, timestamp):
         from util import format_time
@@ -836,7 +836,7 @@ class Abstract_Wallet(PrintError):
         return tx
 
     def estimate_fee(self, config, size, outputs=[]):
-        fee = (1 + size / 1000) * int(self.fee_per_kb(config))
+        fee = (1 + size / 1000) * MIN_RELAY_TX_FEE
         for _, _, value in outputs:
             if value < DUST_SOFT_LIMIT:
                 fee = (1 + size / 1000) * MIN_RELAY_TX_FEE + MIN_RELAY_TX_FEE
