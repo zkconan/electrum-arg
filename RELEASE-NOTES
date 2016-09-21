@@ -1,7 +1,16 @@
-# Release 2.7.1-Argentum (September 2016)
+# Release 2.7.1b-Argentum (September 2016) **BETA**
  
+ * Sending, receiving, creating/restoring wallets appear to be operating as expected.
+
+ * Issues - Please use at your own risk
+    * History window - Date will not display; Context menu "Right Click" details will not display.
+        - Confirmation icon isn't working.
+    * Building for Windows is currently broken. Feel free help troubleshoot, maybe it's just my VM.
+    * Most, if not all of the plugins are not working for obvious reasons.
+
+ * TODO: Icons, plugins, scripts, probably other stuff.
  * Remove Dynamic Fee's and Replace-By-Fee as they will never be necessary for Argentum. De-clutters UI and avoids incompatibilities.
- * Initial Argentum brand release.
+ * Initial Argentum release.
 
 # Release 2.7.0 (August 2016)
 
