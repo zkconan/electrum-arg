@@ -89,6 +89,11 @@ Creating Binaries
 
 In order to create binaries, you must create the 'packages' directory::
 
+    pip install ecdsa
+    pip install pbkdf2
+    pip install qrcode
+    pip install dnspython
+    pip install jsonrpclib
     sudo ./contrib/make_packages
 
 This directory contains the python dependencies used by Electrum.
