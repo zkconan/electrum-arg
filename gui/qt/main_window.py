@@ -41,13 +41,14 @@ import PyQt4.QtCore as QtCore
 
 import icons_rc
 
+from electrum_arg import keystore
 from electrum_arg.bitcoin import COIN, is_valid, TYPE_ADDRESS
 from electrum_arg.plugins import run_hook
 from electrum_arg.i18n import _
 from electrum_arg.util import (block_explorer, block_explorer_info, format_time,
-                               block_explorer_URL, format_satoshis, PrintError,
-                               format_satoshis_plain, NotEnoughFunds, StoreDict,
-                               UserCancelled)
+                           block_explorer_URL, format_satoshis, PrintError,
+                           format_satoshis_plain, NotEnoughFunds, StoreDict,
+                           UserCancelled)
 from electrum_arg import Transaction, mnemonic
 from electrum_arg import util, bitcoin, commands, coinchooser
 from electrum_arg import SimpleConfig, paymentrequest
@@ -102,6 +103,15 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.tray = gui_object.tray
         self.app = gui_object.app
         self.cleaned_up = False
+        self.is_max = False
+        self.payment_request = None
+        self.checking_accounts = False
+        self.qr_window = None
+        self.not_enough_funds = False
+        self.pluginsdialog = None
+        self.require_fee_update = False
+        self.tx_notifications = []
+        self.tl_windows = []
 
         self.create_status_bar()
         self.need_update = threading.Event()
@@ -156,18 +166,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             # set initial message
             self.console.showMessage(self.network.banner)
 
-        self.is_max = False
-        self.payment_request = None
-        self.checking_accounts = False
-        self.qr_window = None
-        self.not_enough_funds = False
-        self.pluginsdialog = None
-        self.fetch_alias()
-        self.require_fee_update = False
-        self.tx_notifications = []
-        self.tl_windows = []
         self.load_wallet(wallet)
         self.connect_slots(gui_object.timer)
+        self.fetch_alias()
 
     def toggle_addresses_tab(self):
         show_addr = not self.config.get('show_addresses_tab', False)
@@ -403,7 +404,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.export_menu = self.private_keys_menu.addAction(_("&Export"), self.export_privkeys_dialog)
         self.import_address_menu = wallet_menu.addAction(_("Import addresses"), self.import_addresses)
         wallet_menu.addAction(_("&Export History"), self.export_history_dialog)
-        wallet_menu.addAction(_("Search"), self.toggle_search).setShortcut(QKeySequence("Ctrl+S"))
+        wallet_menu.addAction(_("Find"), self.toggle_search).setShortcut(QKeySequence("Ctrl+F"))
         wallet_menu.addAction(_("Addresses"), self.toggle_addresses_tab).setShortcut(QKeySequence("Ctrl+A"))
 
         tools_menu = menubar.addMenu(_("&Tools"))
@@ -697,8 +698,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         return w
 
 
-    def delete_payment_request(self, item):
-        addr = str(item.text(2))
+    def delete_payment_request(self, addr):
         self.wallet.remove_payment_request(addr, self.config)
         self.request_list.update()
         self.clear_receive_tab()
@@ -1075,9 +1075,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             password = None
             while self.wallet.has_password():
                 password = self.password_dialog(parent=parent)
+                if password is None:
+                    # User cancelled password input
+                    return
                 try:
-                    if password:
-                        self.wallet.check_password(password)
+                    self.wallet.check_password(password)
                     break
                 except Exception as e:
                     self.show_error(str(e), parent=parent)
@@ -1204,10 +1206,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         '''Sign the transaction in a separate thread.  When done, calls
         the callback with a success code of True or False.
         '''
-        if self.wallet.has_password() and not password:
-            callback(False) # User cancelled password input
-            return
-
         # call hook to see if plugin needs gui interaction
         run_hook('sign_tx', self, tx)
 
@@ -1623,39 +1621,30 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         grid.addWidget(line1, 1, 1)
         grid.addWidget(QLabel(_("Name")), 2, 0)
         grid.addWidget(line2, 2, 1)
-
         vbox.addLayout(grid)
         vbox.addLayout(Buttons(CancelButton(d), OkButton(d)))
-
-        if not d.exec_():
-            return
-
-        if self.set_contact(unicode(line2.text()), str(line1.text())):
-            self.tabs.setCurrentIndex(4)
+        if d.exec_():
+            self.set_contact(unicode(line2.text()), str(line1.text()))
 
     def show_master_public_keys(self):
         dialog = WindowModalDialog(self, "Master Public Keys")
-        mpk_dict = self.wallet.get_master_public_keys()
+        mpk_list = self.wallet.get_master_public_keys()
         vbox = QVBoxLayout()
         mpk_text = ShowQRTextEdit()
         mpk_text.setMaximumHeight(100)
         mpk_text.addCopyButton(self.app)
-        sorted_keys = sorted(mpk_dict.keys())
         def show_mpk(index):
-            mpk_text.setText(mpk_dict[sorted_keys[index]])
+            mpk_text.setText(mpk_list[index])
 
         # only show the combobox in case multiple accounts are available
-        if len(mpk_dict) > 1:
+        if len(mpk_list) > 1:
             def label(key):
                 if isinstance(self.wallet, Multisig_Wallet):
-                    is_mine = False#self.wallet.master_private_keys.has_key(key)
-                    mine_text = [_("cosigner"), _("self")]
-                    return "%s (%s)" % (key, mine_text[is_mine])
-                return key
-            labels = list(map(label, sorted_keys))
+                    return _("cosigner") + ' ' + str(i+1)
+                return ''
+            labels = [ label(i) for i in range(len(mpk_list))]
             on_click = lambda clayout: show_mpk(clayout.selected_index())
-            labels_clayout = ChoicesLayout(_("Master Public Keys"), labels,
-                                           on_click)
+            labels_clayout = ChoicesLayout(_("Master Public Keys"), labels, on_click)
             vbox.addLayout(labels_clayout.layout())
 
         show_mpk(0)
@@ -1666,21 +1655,18 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
     @protected
     def show_seed_dialog(self, password):
-        if self.wallet.has_password() and password is None:
-            # User cancelled password input
-            return
         if not self.wallet.has_seed():
             self.show_message(_('This wallet has no seed'))
             return
         keystore = self.wallet.get_keystore()
         try:
-            mnemonic = keystore.get_mnemonic(password)
+            seed = keystore.get_seed(password)
             passphrase = keystore.get_passphrase(password)
         except BaseException as e:
             self.show_error(str(e))
             return
         from seed_dialog import SeedDialog
-        d = SeedDialog(self, mnemonic, passphrase)
+        d = SeedDialog(self, seed, passphrase)
         d.exec_()
 
 
@@ -1713,7 +1699,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
     @protected
     def show_private_key(self, address, password):
-        if not address: return
+        if not address:
+            return
         try:
             pk_list = self.wallet.get_private_key(address, password)
         except Exception as e:
@@ -1793,7 +1780,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         hbox.addWidget(b)
         layout.addLayout(hbox, 4, 1)
         d.exec_()
-
 
     @protected
     def do_decrypt(self, message_e, pubkey_e, encrypted_e, password):
@@ -1945,16 +1931,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             tx = transaction.Transaction(r)
             self.show_transaction(tx)
 
-
     @protected
     def export_privkeys_dialog(self, password):
         if self.wallet.is_watching_only():
             self.show_message(_("This is a watching-only wallet"))
-            return
-        try:
-            self.wallet.check_password(password)
-        except Exception as e:
-            self.show_error(str(e))
             return
 
         d = WindowModalDialog(self, _('Private keys'))
@@ -2140,7 +2120,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         keys_e.setTabChangesFocus(True)
         vbox.addWidget(keys_e)
 
-        addresses = self.wallet.get_unused_addresses(None)
+        addresses = self.wallet.get_unused_addresses()
         h, address_e = address_field(addresses)
         vbox.addLayout(h)
 
@@ -2150,23 +2130,23 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         button.setEnabled(False)
 
         def get_address():
-            addr = str(address_e.text())
+            addr = str(address_e.text()).strip()
             if bitcoin.is_address(addr):
                 return addr
 
         def get_pk():
-            pk = str(keys_e.toPlainText()).strip()
-            if Wallet.is_private_key(pk):
-                return pk.split()
+            text = str(keys_e.toPlainText())
+            return keystore.get_private_keys(text)
 
         f = lambda: button.setEnabled(get_address() is not None and get_pk() is not None)
+        on_address = lambda text: address_e.setStyleSheet(BLACK_FG if get_address() else RED_FG)
         keys_e.textChanged.connect(f)
         address_e.textChanged.connect(f)
+        address_e.textChanged.connect(on_address)
         if not d.exec_():
             return
 
-        fee = self.wallet.fee_per_kb(self.config)
-        tx = Transaction.sweep(get_pk(), self.network, get_address(), fee)
+        tx = self.wallet.sweep(get_pk(), self.network, self.config, get_address(), None)
         if not tx:
             self.show_message(_('No inputs found. (Note that inputs need to be confirmed)'))
             return
@@ -2205,7 +2185,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             return
         title, msg = _('Import private keys'), _("Enter private keys")
         self._do_import(title, msg, lambda x: self.wallet.import_key(x, password))
-
 
     def settings_dialog(self):
         self.need_restart = False
@@ -2579,7 +2558,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         try:
             new_tx = self.wallet.bump_fee(tx, delta)
         except BaseException as e:
-            self.show_error(e)
+            self.show_error(str(e))
             return
         if is_final:
             new_tx.set_sequence(0xffffffff)

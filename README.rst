@@ -8,7 +8,7 @@ Electrum-ARG - Lightweight Argentum client
   Port Maintainer: Protonn
   Language: Python
   Homepage: https://www.github.com/argentumproject/electrum-arg
-
+  
 
 
 
@@ -28,6 +28,13 @@ system; all the python dependencies are included in the 'packages'
 directory. To run Electrum from its root directory, just do::
 
     ./electrum-arg
+
+You can also install Electrum on your system, by running this command::
+
+    python setup.py install
+
+This will download and install the Python dependencies used by
+Electrum, instead of using the 'packages' directory.
 
 If you cloned the git repository, then you need to compile extra files
 before you can run Electrum. Read the next section, "Development
@@ -57,31 +64,10 @@ Compile the protobuf description file::
     sudo apt-get install protobuf-compiler
     sudo protoc --proto_path=lib/ --python_out=lib/ lib/paymentrequest.proto
 
-Create translations::
+Create translations (optional)::
 
     sudo apt-get install python-pycurl gettext
     sudo ./contrib/make_locale
-
-
-
-Install on Linux systems
-========================
-
-If you install Electrum on your system, you can run it from any
-directory.
-
-If you have pip, you can do::
-
-    sudo -H python setup.py sdist
-    sudo pip install --pre dist/Electrum-ARG-2.0.tar.gz
-
-
-If you don't have pip, install with::
-
-    sudo python setup.py sdist
-    sudo python setup.py install
-
-
 
 Creating Binaries
 =================

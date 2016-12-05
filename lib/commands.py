@@ -43,7 +43,6 @@ from transaction import Transaction
 import paymentrequest
 from paymentrequest import PR_PAID, PR_UNPAID, PR_UNKNOWN, PR_EXPIRED
 import contacts
-
 known_commands = {}
 
 class Command:
@@ -92,7 +91,7 @@ class Commands:
 
     def _run(self, method, args, password_getter):
         cmd = known_commands[method]
-        if cmd.requires_password and self.wallet.use_encryption:
+        if cmd.requires_password and self.wallet.has_password():
             self._password = apply(password_getter,())
             if self._password is None:
                 return
@@ -144,11 +143,17 @@ class Commands:
         return True
 
     @command('')
-    def make_seed(self, nbits=128, language=None):
+    def make_seed(self, nbits=128, entropy=1, language=None):
         """Create a seed"""
         from mnemonic import Mnemonic
-        s = Mnemonic(language).make_seed(nbits)
+        s = Mnemonic(language).make_seed(nbits, custom_entropy=entropy)
         return s.encode('utf8')
+
+    @command('')
+    def check_seed(self, seed, entropy=1, language=None):
+        """Check that a seed was generated with given entropy"""
+        from mnemonic import Mnemonic
+        return Mnemonic(language).check_seed(seed, entropy)
 
     @command('n')
     def getaddresshistory(self, address):
@@ -332,7 +337,9 @@ class Commands:
     def version(self):
         """Return the version of electrum."""
         import electrum_arg as electrum  # Needs to stay here to prevent ciruclar imports
-        return electrum.ELECTRUM_VERSION
+        from version import ELECTRUM_VERSION
+        return ELECTRUM_VERSION
+
 
     @command('w')
     def getmpk(self):
@@ -347,7 +354,7 @@ class Commands:
     @command('wp')
     def getseed(self):
         """Get seed phrase. Print the generation seed of your wallet."""
-        s = self.wallet.get_mnemonic(self._password)
+        s = self.wallet.get_seed(self._password)
         return s.encode('utf8')
 
     @command('wp')
@@ -368,18 +375,23 @@ class Commands:
             raise BaseException('cannot verify alias', x)
         return out['address']
 
-    @command('n')
-    def sweep(self, privkey, destination, tx_fee=None, nocheck=False):
+    @command('nw')
+    def sweep(self, privkey, destination, tx_fee=None, nocheck=False, imax=100):
         """Sweep private keys. Returns a transaction that spends UTXOs from
         privkey to a destination address. The transaction is not
         broadcasted."""
         privkeys = privkey if type(privkey) is list else [privkey]
         self.nocheck = nocheck
         dest = self._resolver(destination)
+<<<<<<< HEAD
         if tx_fee is None:
             tx_fee = 0.005
         fee = int(Decimal(tx_fee)*COIN)
         return Transaction.sweep(privkeys, self.network, dest, fee)
+=======
+        tx = self.wallet.sweep(privkeys, self.network, self.config, dest, tx_fee, imax)
+        return tx.as_dict() if tx else None
+>>>>>>> refs/remotes/spesmilo/master
 
     @command('wp')
     def signmessage(self, address, message):
@@ -398,7 +410,6 @@ class Commands:
         self.nocheck = nocheck
         change_addr = self._resolver(change_addr)
         domain = None if domain is None else map(self._resolver, domain)
-        fee = None if fee is None else int(COIN*Decimal(fee))
         final_outputs = []
         for address, amount in outputs:
             address = self._resolver(address)
@@ -653,10 +664,16 @@ command_options = {
     'show_balance':("-b", "--balance",     "Show the balances of listed addresses"),
     'show_labels': ("-l", "--labels",      "Show the labels of listed addresses"),
     'nocheck':     (None, "--nocheck",     "Do not verify aliases"),
+<<<<<<< HEAD
     'tx_fee':      ("-f", "--fee",         "Transaction fee (in ARG)"),
+=======
+    'imax':        (None, "--imax",        "Maximum number of inputs"),
+    'tx_fee':      ("-f", "--fee",         "Transaction fee (in BTC)"),
+>>>>>>> refs/remotes/spesmilo/master
     'from_addr':   ("-F", "--from",        "Source address. If it isn't in the wallet, it will ask for the private key unless supplied in the format public_key:private_key. It's not saved in the wallet."),
     'change_addr': ("-c", "--change",      "Change address. Default is a spare address, or the source address if it's not in the wallet"),
     'nbits':       (None, "--nbits",       "Number of bits of entropy"),
+    'entropy':     (None, "--entropy",     "Custom entropy"),
     'language':    ("-L", "--lang",        "Default language for wordlist"),
     'gap_limit':   ("-G", "--gap",         "Gap limit"),
     'privkey':     (None, "--privkey",     "Private key. Set to '?' to get a prompt."),
@@ -678,12 +695,14 @@ json_loads = lambda x: json.loads(x, parse_float=lambda x: str(Decimal(x)))
 arg_types = {
     'num': int,
     'nbits': int,
+    'imax': int,
+    'entropy': long,
     'tx': tx_from_str,
     'pubkeys': json_loads,
     'jsontx': json_loads,
     'inputs': json_loads,
     'outputs': json_loads,
-    'tx_fee': lambda x: str(Decimal(x)) if x is not None else None,
+    'tx_fee': lambda x: int(COIN*Decimal(x)) if x is not None else None,
     'amount': lambda x: str(Decimal(x)) if x!='!' else '!',
 }
 

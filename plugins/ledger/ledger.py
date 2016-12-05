@@ -117,13 +117,13 @@ class Ledger_Client():
         try:
             firmware = self.dongleObject.getFirmwareVersion()['version'].split(".")
             if not checkFirmware(firmware):
-                self.dongleObject.close()
+                self.dongleObject.dongle.close()
                 raise Exception("HW1 firmware version too old. Please update at https://www.ledgerwallet.com")
             try:
                 self.dongleObject.getOperationMode()
             except BTChipException, e:
                 if (e.sw == 0x6985):
-                    self.dongleObject.close()
+                    self.dongleObject.dongle.close()
                     dialog = StartBTChipPersoDialog()
                     dialog.exec_()
                     # Acquire the new client on the next run
@@ -149,7 +149,12 @@ class Ledger_Client():
 
     def checkDevice(self):
         if not self.preflightDone:
-            self.perform_hw1_preflight()
+            try:
+                self.perform_hw1_preflight()
+            except BTChipException as e:
+                if (e.sw == 0x6d00):
+                    raise BaseException("Device not in Bitcoin mode")
+                raise e
             self.preflightDone = True
 
     def password_dialog(self, msg=None):
@@ -258,6 +263,7 @@ class Ledger_KeyStore(Hardware_KeyStore):
         output = None
         outputAmount = None
         p2shTransaction = False
+	reorganize = False
         pin = ""
         self.get_client() # prompt for the PIN before displaying the dialog if necessary
 
@@ -302,11 +308,12 @@ class Ledger_KeyStore(Hardware_KeyStore):
         if not p2shTransaction:
             if len(tx.outputs()) > 2: # should never happen
                 self.give_error("Transaction with more than 2 outputs not supported")
-            for i, (_type, address, amount) in enumerate(tx.outputs()):
+            for _type, address, amount in tx.outputs():
                 assert _type == TYPE_ADDRESS
-                change, index = tx.output_info[i]            
-                if change:
-                    changePath = "%s/%d/%d" % (self.get_derivation()[2:], change, index)
+                info = tx.output_info.get(address)
+                if info is not None:
+                    index, xpubs, m = info
+                    changePath = self.get_derivation()[2:] + "/%d/%d"%index
                     changeAmount = amount
                 else:
                     if output <> None: # should never happen
@@ -335,15 +342,19 @@ class Ledger_KeyStore(Hardware_KeyStore):
             # Sign all inputs
             firstTransaction = True
             inputIndex = 0
+            rawTx = tx.serialize()
             while inputIndex < len(inputs):
                 self.get_client().startUntrustedTransaction(firstTransaction, inputIndex,
+
                 chipInputs, redeemScripts[inputIndex])
                 if not p2shTransaction:
                     outputData = self.get_client().finalizeInput(output, format_satoshis_plain(outputAmount),
                         format_satoshis_plain(tx.get_fee()), changePath, bytearray(rawTx.decode('hex')))
+                    reorganize = True
                 else:
                     outputData = self.get_client().finalizeInputFull(txOutput)
                     outputData['outputData'] = txOutput
+
                 if firstTransaction:
                     transactionOutput = outputData['outputData']
                 if outputData['confirmationNeeded']:
@@ -403,7 +414,11 @@ class Ledger_KeyStore(Hardware_KeyStore):
             inputIndex = inputIndex + 1
         updatedTransaction = format_transaction(transactionOutput, preparedTrustedInputs)
         updatedTransaction = hexlify(updatedTransaction)
-        tx.update_signatures(updatedTransaction)
+
+        if reorganize:
+           tx.update(updatedTransaction)
+        else:
+           tx.update_signatures(updatedTransaction)
         self.signing = False
 
     def check_proper_device(self):

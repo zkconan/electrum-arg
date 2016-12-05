@@ -33,10 +33,9 @@ from plugins import run_hook
 
 class BaseWizard(object):
 
-    def __init__(self, config, network, path):
+    def __init__(self, config, path):
         super(BaseWizard, self).__init__()
         self.config = config
-        self.network = network
         self.storage = WalletStorage(path)
         self.wallet = None
         self.stack = []
@@ -210,7 +209,12 @@ class BaseWizard(object):
 
     def on_device(self, name, device_info):
         self.plugin = self.plugins.get_plugin(name)
-        self.plugin.setup_device(device_info, self)
+        try:
+            self.plugin.setup_device(device_info, self)
+        except BaseException as e:
+            self.show_error(str(e))
+            self.choose_hw_device()
+            return
         if self.wallet_type=='multisig':
             # There is no general standard for HD multisig.
             # This is partially compatible with BIP45; assumes index=0
@@ -250,16 +254,16 @@ class BaseWizard(object):
         self.on_keystore(k)
 
     def passphrase_dialog(self, run_next):
-        title = _('Passphrase')
+        title = _('Seed extension')
         message = '\n'.join([
-            _('You may extend your seed with a passphrase.'),
-            _('The passphrase must be saved together with your seed.'),
+            _('You may extend your seed with custom words.'),
+            _('Your seed extension must be saved together with your seed.'),
         ])
         warning = '\n'.join([
             _('Note that this is NOT your encryption password.'),
             _('If you do not know what this is, leave this field empty.'),
         ])
-        self.line_dialog(title=_('Passphrase'), message=message, warning=warning, default='', test=lambda x:True, run_next=run_next)
+        self.line_dialog(title=title, message=message, warning=warning, default='', test=lambda x:True, run_next=run_next)
 
     def restore_from_seed(self):
         self.opt_bip39 = True
@@ -286,7 +290,7 @@ class BaseWizard(object):
                     self.load_2fa()
                     self.run('on_restore_seed', seed, is_ext)
             else:
-                raise
+                raise BaseException('Unknown seed type', seed_type)
 
     def on_restore_bip39(self, seed, passphrase):
         f = lambda x: self.run('on_bip44', seed, passphrase, int(x))
@@ -375,9 +379,9 @@ class BaseWizard(object):
     def confirm_passphrase(self, seed, passphrase):
         f = lambda x: self.run('create_keystore', seed, x)
         if passphrase:
-            title = _('Confirm Passphrase')
+            title = _('Confirm Seed Extension')
             message = '\n'.join([
-                _('Your passphrase must be saved together with your seed.'),
+                _('Your seed extension must be saved together with your seed.'),
                 _('Please type it here.'),
             ])
             self.line_dialog(run_next=f, title=title, message=message, default='', test=lambda x: x==passphrase)

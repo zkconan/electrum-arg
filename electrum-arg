@@ -27,6 +27,21 @@
 import os
 import sys
 
+# from https://gist.github.com/tito/09c42fb4767721dc323d
+import threading
+try:
+    import jnius
+except:
+    jnius = None
+if jnius:
+    orig_thread_run = threading.Thread.run
+    def thread_check_run(*args, **kwargs):
+        try:
+            return orig_thread_run(*args, **kwargs)
+        finally:
+            jnius.detach()
+    threading.Thread.run = thread_check_run
+
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 is_bundle = getattr(sys, 'frozen', False)
@@ -124,7 +139,8 @@ def run_non_RPC(config):
             k = keystore.from_keys(text)
         else:
             sys.exit("Error: Seed or key not recognized")
-        k.update_password(None, password)
+        if password:
+            k.update_password(None, password)
         storage.put('keystore', k.dump())
         storage.put('wallet_type', 'standard')
         storage.put('use_encryption', bool(password))
