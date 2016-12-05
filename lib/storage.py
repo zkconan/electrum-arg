@@ -60,7 +60,6 @@ class WalletStorage(PrintError):
         self.print_error("wallet path", self.path)
         if self.path:
             self.read(self.path)
-
         # check here if I need to load a plugin
         t = self.get('wallet_type')
         l = plugin_loaders.get(t)

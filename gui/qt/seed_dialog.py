@@ -30,20 +30,10 @@ from electrum_arg.i18n import _
 from util import *
 from qrtextedit import ShowQRTextEdit, ScanQRTextEdit
 
-def icon_filename(sid):
-    if sid == 'cold':
-        return ":icons/cold_seed.png"
-    elif sid == 'hot':
-        return ":icons/hot_seed.png"
-    else:
-        return ":icons/seed.png"
-
 
 class SeedLayoutBase(object):
-    def _seed_layout(self, seed=None, title=None, sid=None):
-        logo = QLabel()
-        logo.setPixmap(QPixmap(icon_filename(sid)).scaledToWidth(56))
-        logo.setMaximumWidth(60)
+
+    def _seed_layout(self, seed=None, title=None, icon=True):
         if seed:
             self.seed_e = ShowQRTextEdit()
             self.seed_e.setText(seed)
@@ -52,7 +42,11 @@ class SeedLayoutBase(object):
             self.seed_e.setTabChangesFocus(True)
         self.seed_e.setMaximumHeight(75)
         hbox = QHBoxLayout()
-        hbox.addWidget(logo)
+        if icon:
+            logo = QLabel()
+            logo.setPixmap(QPixmap(":icons/seed.png").scaledToWidth(64))
+            logo.setMaximumWidth(60)
+            hbox.addWidget(logo)
         hbox.addWidget(self.seed_e)
         if not title:
             return hbox
@@ -70,8 +64,8 @@ class SeedLayoutBase(object):
 
 
 class SeedDisplayLayout(SeedLayoutBase):
-    def __init__(self, seed, title=None, sid=None):
-        self.layout_ = self._seed_layout(seed=seed, title=title, sid=sid)
+    def __init__(self, seed, title=None, icon=True):
+        self.layout_ = self._seed_layout(seed=seed, title=title, icon=icon)
 
 
 
@@ -82,11 +76,11 @@ def seed_warning_msg(seed):
         _("This seed will allow you to recover your wallet in case "
           "of computer failure."),
         "</p>",
-        "<b>" + _("WARNING") + ":</b> ",
+        "<b>" + _("WARNING") + ":</b>",
         "<ul>",
         "<li>" + _("Never disclose your seed.") + "</li>",
         "<li>" + _("Never type it on a website.") + "</li>",
-        "<li>" + _("Do not send your seed to a printer.") + "</li>",
+        "<li>" + _("Do not store it electronically.") + "</li>",
         "</ul>"
     ]) % len(seed.split())
 
@@ -107,7 +101,7 @@ class TextInputLayout(SeedLayoutBase):
     def __init__(self, parent, title, is_valid):
         self.is_valid = is_valid
         self.parent = parent
-        self.layout_ = self._seed_layout(title=title)
+        self.layout_ = self._seed_layout(title=title, icon=False)
         self.seed_e.textChanged.connect(self.on_edit)
 
     def get_text(self):
@@ -122,6 +116,12 @@ class SeedInputLayout(SeedLayoutBase):
     def __init__(self, parent, title, is_seed):
         vbox = QVBoxLayout()
         vbox.addLayout(self._seed_layout(title=title))
+        hbox = QHBoxLayout()
+        hbox.addStretch(1)
+        hbox.addWidget(QLabel(''))
+        self.seed_type_label = QLabel('')
+        hbox.addWidget(self.seed_type_label)
+        vbox.addLayout(hbox)
         self.layout_ = vbox
         self.parent = parent
         self.is_seed = is_seed
@@ -131,7 +131,13 @@ class SeedInputLayout(SeedLayoutBase):
         return clean_text(self.seed_edit())
 
     def on_edit(self):
-        self.parent.next_button.setEnabled(self.is_seed(self.get_seed()))
+        from electrum.bitcoin import seed_type
+        s = self.get_seed()
+        b = self.is_seed(s)
+        t = seed_type(s)
+        label = _('Seed Type') + ': ' + t if t else ''
+        self.seed_type_label.setText(label)
+        self.parent.next_button.setEnabled(b)
 
 
 

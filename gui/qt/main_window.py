@@ -290,11 +290,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.setGeometry(100, 100, 840, 400)
 
     def watching_only_changed(self):
+
         title = 'Electrum-ARG %s  -  %s' % (self.wallet.electrum_version,
-                                            self.wallet.basename())
+                                        self.wallet.basename())
+        extra = [self.wallet.storage.get('wallet_type', '?')]
         if self.wallet.is_watching_only():
             self.warn_if_watching_only()
-            title += ' [%s]' % (_('watching only'))
+            extra.append(_('watching only'))
+        title += '  [%s]'% ', '.join(extra)
         self.setWindowTitle(title)
         self.password_menu.setEnabled(self.wallet.can_change_password())
         self.import_privkey_menu.setVisible(self.wallet.can_import_privkey())
@@ -922,6 +925,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.amount_e.shortcut.connect(self.spend_max)
         self.payto_e.textChanged.connect(self.update_fee)
         self.amount_e.textEdited.connect(self.update_fee)
+        self.amount_e.textEdited.connect(self.reset_max)
 
         def entry_changed():
             text = ""
@@ -983,6 +987,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         # emit signal for fiat_amount update
         self.amount_e.textEdited.emit("")
         self.is_max = True
+
+    def reset_max(self):
+        self.is_max = False
 
     def update_fee(self):
         self.require_fee_update = True
@@ -2529,7 +2536,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         for i, descr in enumerate(plugins.descriptions.values()):
             name = descr['__name__']
             p = plugins.get(name)
-            if descr.get('registers_wallet_type'):
+            if descr.get('registers_keystore'):
                 continue
             try:
                 cb = QCheckBox(descr['fullname'])

@@ -1012,7 +1012,8 @@ class Abstract_Wallet(PrintError):
         # sign
         for k in self.get_keystores():
             try:
-                k.sign_transaction(tx, password)
+                if k.can_sign(tx):
+                    k.sign_transaction(tx, password)
             except UserCancelled:
                 continue
 
@@ -1039,17 +1040,25 @@ class Abstract_Wallet(PrintError):
         rdir = config.get('requests_dir')
         if rdir:
             key = out.get('id', addr)
-            path = os.path.join(rdir, key)
+            path = os.path.join(rdir, 'req', key[0], key[1], key)
             if os.path.exists(path):
                 baseurl = 'file://' + rdir
                 rewrite = config.get('url_rewrite')
                 if rewrite:
                     baseurl = baseurl.replace(*rewrite)
-                out['request_url'] = os.path.join(baseurl, key)
+                out['request_url'] = os.path.join(baseurl, 'req', key[0], key[1], key, key)
                 out['URI'] += '&r=' + out['request_url']
                 out['index_url'] = os.path.join(baseurl, 'index.html') + '?id=' + key
-                out['websocket_server'] = config.get('websocket_server', 'localhost')
-                out['websocket_port'] = config.get('websocket_port', 9999)
+                websocket_server_announce = config.get('websocket_server_announce')
+                if websocket_server_announce:
+                    out['websocket_server'] = websocket_server_announce
+                else:
+                    out['websocket_server'] = config.get('websocket_server', 'localhost')
+                websocket_port_announce = config.get('websocket_port_announce')
+                if websocket_port_announce:
+                    out['websocket_port'] = websocket_port_announce
+                else:
+                    out['websocket_port'] = config.get('websocket_port', 9999)
         return out
 
     def get_request_status(self, key):
@@ -1107,12 +1116,18 @@ class Abstract_Wallet(PrintError):
         if rdir and amount is not None:
             key = req.get('id', addr)
             pr = paymentrequest.make_request(config, req)
-            path = os.path.join(rdir, key)
-            with open(path, 'w') as f:
+            path = os.path.join(rdir, 'req', key[0], key[1], key)
+            if not os.path.exists(path):
+                try:
+                    os.makedirs(path)
+                except OSError as exc:
+                    if exc.errno != errno.EEXIST:
+                        raise
+            with open(os.path.join(path, key), 'w') as f:
                 f.write(pr.SerializeToString())
             # reload
             req = self.get_payment_request(addr, config)
-            with open(os.path.join(rdir, key + '.json'), 'w') as f:
+            with open(os.path.join(path, key + '.json'), 'w') as f:
                 f.write(json.dumps(req))
         return req
 
@@ -1124,7 +1139,7 @@ class Abstract_Wallet(PrintError):
         if rdir:
             key = r.get('id', addr)
             for s in ['.json', '']:
-                n = os.path.join(rdir, key + s)
+                n = os.path.join(rdir, 'req', key[0], key[1], key, key + s)
                 if os.path.exists(n):
                     os.unlink(n)
         self.storage.put('payment_requests', self.receive_requests)
@@ -1251,6 +1266,10 @@ class P2PK_Wallet(Abstract_Wallet):
     def get_pubkey(self, c, i):
         pubkey_list = self.change_pubkeys if c else self.receiving_pubkeys
         return pubkey_list[i]
+
+    def get_public_keys(self, address):
+        sequence = self.get_address_index(address)
+        return [self.get_pubkey(*sequence)]
 
     def get_pubkey_index(self, pubkey):
         if pubkey in self.receiving_pubkeys:
@@ -1501,6 +1520,9 @@ class Multisig_Wallet(Deterministic_Wallet):
             keystore.update_password(old_pw, new_pw)
             self.storage.put(name, keystore.dump())
         self.storage.put('use_encryption', (new_pw is not None))
+
+    def check_password(self, password):
+        self.keystore.check_password(password)
 
     def has_seed(self):
         return self.keystore.has_seed()
