@@ -354,7 +354,7 @@ block_explorer_info = {
 }
 
 def block_explorer(config):
-    return config.get('block_explorer', 'http://www.blockexperts.com/arg')
+    return config.get('block_explorer', 'BlockExperts')
 
 def block_explorer_tuple(config):
     return block_explorer_info.get(block_explorer(config))
