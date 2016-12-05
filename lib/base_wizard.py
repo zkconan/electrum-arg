@@ -24,6 +24,7 @@
 # SOFTWARE.
 
 import os
+import bitcoin
 import keystore
 from electrum_arg.wallet import Wallet, Imported_Wallet, Standard_Wallet, Multisig_Wallet, WalletStorage, wallet_types
 from electrum_arg.wallet import Wallet, Multisig_Wallet, WalletStorage
@@ -86,6 +87,11 @@ class BaseWizard(object):
         choices = [pair for pair in wallet_kinds if pair[0] in wallet_types]
         self.choice_dialog(title=title, message=message, choices=choices, run_next=self.on_wallet_type)
 
+    def load_2fa(self):
+        self.storage.put('wallet_type', '2fa')
+    #    self.storage.put('use_trustedcoin', False)
+    #    self.plugin = self.plugins.load_plugin('trustedcoin')
+
     def on_wallet_type(self, choice):
         self.wallet_type = choice
         if choice == 'standard':
@@ -93,9 +99,7 @@ class BaseWizard(object):
         elif choice == 'multisig':
             action = 'choose_multisig'
         elif choice == '2fa':
-            self.storage.put('wallet_type', '2fa')
-            self.storage.put('use_trustedcoin', True)
-            self.plugin = self.plugins.load_plugin('trustedcoin')
+            self.load_2fa()
             action = self.storage.get_action()
         elif choice == 'imported':
             action = 'import_addresses'
@@ -126,6 +130,7 @@ class BaseWizard(object):
             message = _('Add a cosigner to your multi-sig wallet')
             choices = [
                 ('restore_from_key', _('Enter cosigner key')),
+                ('restore_from_seed', _('Enter cosigner seed')),
             ]
             if not self.is_kivy:
                 choices.append(('choose_hw_device',  _('Cosign with hardware device')))
@@ -136,7 +141,7 @@ class BaseWizard(object):
         v = keystore.is_address_list
         title = _("Import Bitcoin Addresses")
         message = _("Enter a list of Bitcoin addresses. This will create a watching-only wallet.")
-        self.restore_keys_dialog(title=title, message=message, run_next=self.on_import_addresses, is_valid=v)
+        self.add_xpub_dialog(title=title, message=message, run_next=self.on_import_addresses, is_valid=v)
 
     def on_import_addresses(self, text):
         assert keystore.is_address_list(text)
@@ -153,14 +158,11 @@ class BaseWizard(object):
                 _("To create a watching-only wallet, please enter your master public key (xpub)."),
                 _("To create a spending wallet, please enter a master private key (xprv), or a list of Argentum private keys.")
             ])
+            self.add_xpub_dialog(title=title, message=message, run_next=self.on_restore_from_key, is_valid=v)
         else:
             v = keystore.is_bip32_key
-            title = _("Master public or private key")
-            message = ' '.join([
-                _("To create a watching-only wallet, please enter your master public key (xpub)."),
-                _("To create a spending wallet, please enter a master private key (xprv).")
-            ])
-        self.restore_keys_dialog(title=title, message=message, run_next=self.on_restore_from_key, is_valid=v)
+            i = len(self.keystores) + 1
+            self.add_cosigner_dialog(index=i, run_next=self.on_restore_from_key, is_valid=v)
 
     def on_restore_from_key(self, text):
         k = keystore.from_keys(text)
@@ -247,30 +249,48 @@ class BaseWizard(object):
         k = hardware_keystore(d)
         self.on_keystore(k)
 
+    def passphrase_dialog(self, run_next):
+        title = _('Passphrase')
+        message = '\n'.join([
+            _('You may extend your seed with a passphrase.'),
+            _('The passphrase must be saved together with your seed.'),
+        ])
+        warning = '\n'.join([
+            _('Note that this is NOT your encryption password.'),
+            _('If you do not know what this is, leave this field empty.'),
+        ])
+        self.line_dialog(title=_('Passphrase'), message=message, warning=warning, default='', test=lambda x:True, run_next=run_next)
+
     def restore_from_seed(self):
         self.opt_bip39 = True
-        self.restore_seed_dialog(run_next=self.on_restore_seed, test=keystore.is_seed)
+        self.opt_ext = True
+        test = bitcoin.is_seed if self.wallet_type == 'standard' else bitcoin.is_new_seed
+        self.restore_seed_dialog(run_next=self.on_restore_seed, test=test)
 
-    def on_restore_seed(self, seed, is_bip39):
-        if keystore.is_new_seed(seed) or is_bip39:
-            message = '\n'.join([
-                _('Your seed may have a passphrase.'),
-                _('If that is the case, enter it here.'),
-                '\n',
-                _('Note that this is NOT your encryption password.'),
-                _('If you do not know what this is, leave this field empty.'),
-            ])
-            f = lambda x: self.on_restore_passphrase(seed, x, is_bip39)
-            self.line_dialog(title=_('Passphrase'), message=message, default='', test=lambda x:True, run_next=f)
-        else:
-            self.on_restore_passphrase(seed, '', False)
-
-    def on_restore_passphrase(self, seed, passphrase, is_bip39):
+    def on_restore_seed(self, seed, is_bip39, is_ext):
         if is_bip39:
-            f = lambda x: self.run('on_bip44', seed, passphrase, int(x))
-            self.account_id_dialog(f)
+            f = lambda passphrase: self.on_restore_bip39(seed, passphrase)
+            self.passphrase_dialog(run_next=f) if is_ext else f('')
         else:
-            self.run('create_keystore', seed, passphrase)
+            seed_type = bitcoin.seed_type(seed)
+            if seed_type == 'standard':
+                f = lambda passphrase: self.run('create_keystore', seed, passphrase)
+                self.passphrase_dialog(run_next=f) if is_ext else f('')
+            elif seed_type == 'old':
+                self.run('create_keystore', seed, '')
+            elif seed_type == '2fa':
+                if self.is_kivy:
+                    self.show_error('2FA seeds are not supported in this version')
+                    self.run('restore_from_seed')
+                else:
+                    self.load_2fa()
+                    self.run('on_restore_seed', seed, is_ext)
+            else:
+                raise
+
+    def on_restore_bip39(self, seed, passphrase):
+        f = lambda x: self.run('on_bip44', seed, passphrase, int(x))
+        self.account_id_dialog(f)
 
     def create_keystore(self, seed, passphrase):
         k = keystore.from_seed(seed, passphrase)
@@ -338,19 +358,15 @@ class BaseWizard(object):
         from electrum_arg.mnemonic import Mnemonic
         seed = Mnemonic('en').make_seed()
         self.opt_bip39 = False
-        self.show_seed_dialog(run_next=self.request_passphrase, seed_text=seed)
+        f = lambda x: self.request_passphrase(seed, x)
+        self.show_seed_dialog(run_next=f, seed_text=seed)
 
-    def request_passphrase(self, seed):
-        title = _('Passphrase')
-        message = '\n'.join([
-            _('You may extend your seed with a passphrase.'),
-            _('This allows you to derive several wallets from the same seed.'),
-            '\n',
-            _('Note that this is NOT your encryption password.'),
-            _('If you do not know what this is, leave this field empty.'),
-        ])
-        f = lambda x: self.confirm_seed(seed, x)
-        self.line_dialog(run_next=f, title=title, message=message, default='', test=lambda x:True)
+    def request_passphrase(self, seed, opt_passphrase):
+        if opt_passphrase:
+            f = lambda x: self.confirm_seed(seed, x)
+            self.passphrase_dialog(run_next=f)
+        else:
+            self.run('confirm_seed', seed, '')
 
     def confirm_seed(self, seed, passphrase):
         f = lambda x: self.confirm_passphrase(seed, passphrase)
@@ -361,7 +377,7 @@ class BaseWizard(object):
         if passphrase:
             title = _('Confirm Passphrase')
             message = '\n'.join([
-                _('Your passphrase must be saved with your seed.'),
+                _('Your passphrase must be saved together with your seed.'),
                 _('Please type it here.'),
             ])
             self.line_dialog(run_next=f, title=title, message=message, default='', test=lambda x: x==passphrase)
