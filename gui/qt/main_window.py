@@ -117,7 +117,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.need_update = threading.Event()
 
         self.decimal_point = config.get('decimal_point', 8)
-        self.num_zeros     = int(config.get('num_zeros',0))
+        self.num_zeros     = int(config.get('num_zeros',2))
 
         self.completions = QStringListModel()
 
@@ -2303,7 +2303,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         SSL_id_e.setReadOnly(True)
         id_widgets.append((SSL_id_label, SSL_id_e))
 
-        units = ['ARG', 'mARG', 'bits']
+        units = ['ARG', 'mARG', 'uARG']
         msg = _('Base unit of your wallet.')\
               + '\n1ARG=1000mARG.\n' \
               + _(' These settings affects the fields in the Send tab')+' '
@@ -2321,7 +2321,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.decimal_point = 8
             elif unit_result == 'mARG':
                 self.decimal_point = 5
-            elif unit_result == 'bits':
+            elif unit_result == 'uARG':
                 self.decimal_point = 2
             else:
                 raise Exception('Unknown base unit')
