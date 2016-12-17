@@ -841,9 +841,6 @@ class Abstract_Wallet(PrintError):
         else:
             fee_estimator = lambda size: fixed_fee
 
-        # Change <= dust threshold is added to the tx fee
-        dust_threshold = DUST_SOFT_LIMIT
-
         # Let the coin chooser select the coins to spend
         max_change = self.max_change_outputs if self.multiple_change else 1
         coin_chooser = coinchooser.get_coin_chooser(config)
