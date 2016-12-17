@@ -1,3 +1,8 @@
+#Release 2.7.12.3b
+  * remove extra argument for dust_threshold
+  * implement new dust threshold value from earlier commit
+  * adjustments for Argentum's lower fee's
+
 # Release 2.7.12.2
   Two-factor Authentication clean-up (disable)
 
