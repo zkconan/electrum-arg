@@ -3,7 +3,7 @@
 
 [Desktop Entry]
 Comment=Lightweight Argentum Client
-Exec=electrum %u
+Exec=electrum-arg %u
 GenericName[en_US]=Argentum Wallet
 GenericName=Argentum Wallet
 Icon=electrum
