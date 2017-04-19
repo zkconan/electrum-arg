@@ -866,15 +866,19 @@ class Transaction:
         }
         return out
 
-
-    def required_fee(self, wallet):
+    def requires_fee(self, wallet):
         # see https://en.bitcoin.it/wiki/Transaction_fees
+        #
+        # size must be smaller than 1 kbyte for free tx
         size = len(self.serialize(-1))/2
-        fee = 0
+        if size >= 49000:
+            return True
+        # all outputs must be 0.001 BTC or larger for free tx
         for addr, value in self.get_outputs():
-            if value < DUST_SOFT_LIMIT:
-                fee += DUST_SOFT_LIMIT
-        threshold = 57600000*4
+            if value < 100000:
+                return True
+        # priority must be large enough for free tx
+        threshold = 768000000
         weight = 0
         for txin in self.inputs():
             height, conf, timestamp = wallet.get_tx_height(txin["prevout_hash"])
@@ -882,12 +886,7 @@ class Transaction:
         priority = weight / size
         print_error(priority, threshold)
 
-        if size < 5000 and fee == 0 and priority > threshold:
-            return 0
-        fee += (1 + size / 1000) * MIN_RELAY_TX_FEE
-        print_error(fee)
-        return fee
-
+        return priority < threshold
 
 
 def tx_from_str(txt):
