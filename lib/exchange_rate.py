@@ -87,7 +87,7 @@ class ExchangeBase(PrintError):
         return [str(a) for (a, b) in rates.iteritems() if b is not None]
 
 
-class Bit2C(ExchangeBase):
+class BitcoinAverage(ExchangeBase):
     def get_rates(self, ccy):
         json = self.get_json('api.bitcoinaverage.com', '/ticker/global/all')
         return dict([(r, Decimal(json[r]['last']))
@@ -102,7 +102,7 @@ class Bit2C(ExchangeBase):
         history = self.get_csv('api.bitcoinaverage.com',
                                "/history/%s/per_day_all_time_history.csv" % ccy)
         return dict([(h['DateTime'][:10], h['Average'])
-                     for h in history])
+                    for h in history])
 
 class BitcoinVenezuela(ExchangeBase):
 
