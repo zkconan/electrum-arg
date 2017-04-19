@@ -108,11 +108,11 @@ Builder.load_string('''
                     description: _("Save and synchronize your labels.")
                     action: partial(root.plugin_dialog, 'labels', self)
                 CardSeparator
-                SettingsItem:
-                    status: root.rbf_status()
-                    title: _('Replace-by-fee') + ': ' + self.status
-                    description: _("Create replaceable transactions.")
-                    action: partial(root.rbf_dialog, self)
+                # SettingsItem:
+                #     status: root.rbf_status()
+                #     title: _('Replace-by-fee') + ': ' + self.status
+                #     description: _("Create replaceable transactions.")
+                #     action: partial(root.rbf_dialog, self)
                 CardSeparator
                 SettingsItem:
                     status: root.coinselect_status()

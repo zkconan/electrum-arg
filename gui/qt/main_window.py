@@ -2440,15 +2440,15 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         feebox_cb.stateChanged.connect(on_feebox)
         fee_widgets.append((feebox_cb, None))
 
-        rbf_policy = self.config.get('rbf_policy', 1)
-        rbf_label = HelpLabel(_('Propose Replace-By-Fee') + ':', '')
-        rbf_combo = QComboBox()
-        rbf_combo.addItems([_('Always'), _('If the fee is low'), _('Never')])
-        rbf_combo.setCurrentIndex(rbf_policy)
-        def on_rbf(x):
-            self.config.set_key('rbf_policy', x)
-        rbf_combo.currentIndexChanged.connect(on_rbf)
-        fee_widgets.append((rbf_label, rbf_combo))
+        # rbf_policy = self.config.get('rbf_policy', 2)
+        # rbf_label = HelpLabel(_('Propose Replace-By-Fee') + ':', '')
+        # rbf_combo = QComboBox()
+        # rbf_combo.addItems([_('Always'), _('If the fee is low'), _('Never')])
+        # rbf_combo.setCurrentIndex(rbf_policy)
+        # def on_rbf(x):
+        #     self.config.set_key('rbf_policy', x)
+        # rbf_combo.currentIndexChanged.connect(on_rbf)
+        # fee_widgets.append((rbf_label, rbf_combo))
 
         msg = _('OpenAlias record, used to receive coins and to sign payment requests.') + '\n\n'\
               + _('The following alias providers are available:') + '\n'\
