@@ -104,6 +104,11 @@ FunctionEnd
 Section
   SetOutPath $INSTDIR
 
+  ;Uninstall previous version files
+  RMDir /r "$INSTDIR\*.*"
+  Delete "$DESKTOP\${PRODUCT_NAME}.lnk"
+  Delete "$SMPROGRAMS\${PRODUCT_NAME}\*.*"
+  
   ;Files to pack into the installer
   File /r "dist\electrum-arg\*.*"
   File "..\..\icons\electrum.ico"
@@ -117,19 +122,19 @@ Section
 
   ;Create desktop shortcut
   DetailPrint "Creating desktop shortcut..."
-  CreateShortCut "$DESKTOP\${PRODUCT_NAME}.lnk" "$INSTDIR\electrum-arg.exe" ""
+  CreateShortCut "$DESKTOP\${PRODUCT_NAME}.lnk" "$INSTDIR\electrum-arg-${PRODUCT_VERSION}.exe" ""
 
   ;Create start-menu items
   DetailPrint "Creating start-menu items..."
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "$INSTDIR\electrum-arg.exe" "" "$INSTDIR\electrum-arg.exe" 0
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "$INSTDIR\electrum-arg-${PRODUCT_VERSION}.exe" "" "$INSTDIR\electrum-arg-${PRODUCT_VERSION}.exe" 0
 
-  ;Links bitcoin: URI's to Electrum
+  ;Links argentum: URI's to Electrum
   WriteRegStr HKCU "Software\Classes\argentum" "" "URL:argentum Protocol"
   WriteRegStr HKCU "Software\Classes\argentum" "URL Protocol" ""
   WriteRegStr HKCU "Software\Classes\argentum" "DefaultIcon" "$\"$INSTDIR\electrum.ico, 0$\""
-  WriteRegStr HKCU "Software\Classes\argentum\shell\open\command" "" "$\"$INSTDIR\electrum-arg.exe$\" $\"%1$\""
+  WriteRegStr HKCU "Software\Classes\argentum\shell\open\command" "" "$\"$INSTDIR\electrum-arg-${PRODUCT_VERSION}.exe$\" $\"%1$\""
 
   ;Adds an uninstaller possibilty to Windows Uninstall or change a program section
   WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"

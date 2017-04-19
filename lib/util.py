@@ -187,7 +187,7 @@ def json_encode(obj):
 
 def json_decode(x):
     try:
-        return json.loads(x, parse_float=decimal.Decimal)
+        return json.loads(x, parse_float=Decimal)
     except:
         return x
 
@@ -243,14 +243,14 @@ def get_headers_path(config):
         return os.path.join(config.path, 'blockchain_headers')
 
 def user_dir():
-    if "HOME" in os.environ:
+    if 'ANDROID_DATA' in os.environ:
+        return android_check_data_dir()
+    elif os.name == 'posix':
         return os.path.join(os.environ["HOME"], ".electrum-arg")
     elif "APPDATA" in os.environ:
         return os.path.join(os.environ["APPDATA"], "Electrum-ARG")
     elif "LOCALAPPDATA" in os.environ:
         return os.path.join(os.environ["LOCALAPPDATA"], "Electrum-ARG")
-    elif 'ANDROID_DATA' in os.environ:
-        return android_check_data_dir()
     else:
         #raise Exception("No home directory found in environment variables.")
         return
@@ -607,37 +607,6 @@ class QueuePipe:
     def send_all(self, requests):
         for request in requests:
             self.send(request)
-
-
-
-class StoreDict(dict):
-
-    def __init__(self, config, name):
-        self.config = config
-        self.path = os.path.join(self.config.path, name)
-        self.load()
-
-    def load(self):
-        try:
-            with open(self.path, 'r') as f:
-                self.update(json.loads(f.read()))
-        except:
-            pass
-
-    def save(self):
-        with open(self.path, 'w') as f:
-            s = json.dumps(self, indent=4, sort_keys=True)
-            r = f.write(s)
-
-    def __setitem__(self, key, value):
-        dict.__setitem__(self, key, value)
-        self.save()
-
-    def pop(self, key):
-        if key in self.keys():
-            dict.pop(self, key)
-            self.save()
-
 
 
 

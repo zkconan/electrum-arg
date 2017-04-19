@@ -49,12 +49,6 @@ expiration_values = [
 ]
 
 
-def clean_text(seed_e):
-    text = unicode(seed_e.toPlainText()).strip()
-    text = ' '.join(text.split())
-    return text
-
-
 class Timer(QThread):
     stopped = False
 
@@ -397,6 +391,7 @@ class MyTreeWidget(QTreeWidget):
         self.setItemDelegate(ElectrumItemDelegate(self))
         self.itemDoubleClicked.connect(self.on_doubleclick)
         self.update_headers(headers)
+        self.current_filter = ""
 
     def update_headers(self, headers):
         self.setColumnCount(len(headers))
@@ -472,7 +467,7 @@ class MyTreeWidget(QTreeWidget):
         key = str(item.data(0, Qt.UserRole).toString())
         text = unicode(item.text(column))
         self.parent.wallet.set_label(key, text)
-        self.parent.history_list.update()
+        self.parent.history_list.update_labels()
         self.parent.update_completions()
 
     def update(self):
@@ -480,7 +475,11 @@ class MyTreeWidget(QTreeWidget):
         if self.editor:
             self.pending_update = True
         else:
+            self.setUpdatesEnabled(False)
             self.on_update()
+            self.setUpdatesEnabled(True)
+        if self.current_filter:
+            self.filter(self.current_filter)
 
     def on_update(self):
         pass
@@ -494,8 +493,10 @@ class MyTreeWidget(QTreeWidget):
             for x in self.get_leaves(item):
                 yield x
 
-    def filter(self, p, columns):
+    def filter(self, p):
+        columns = self.__class__.filter_columns
         p = unicode(p).lower()
+        self.current_filter = p
         for item in self.get_leaves(self.invisibleRootItem()):
             item.setHidden(all([unicode(item.text(column)).lower().find(p) == -1
                                 for column in columns]))

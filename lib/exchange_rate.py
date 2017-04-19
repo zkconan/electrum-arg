@@ -8,11 +8,10 @@ import traceback
 import csv
 from decimal import Decimal
 
-from electrum_arg.bitcoin import COIN
-from electrum_arg.plugins import BasePlugin, hook
-from electrum_arg.i18n import _
-from electrum_arg.util import PrintError, ThreadJob
-from electrum_arg.util import format_satoshis
+from bitcoin import COIN
+from i18n import _
+from util import PrintError, ThreadJob
+from util import format_satoshis
 
 
 # See https://en.wikipedia.org/wiki/ISO_4217
@@ -31,19 +30,15 @@ class ExchangeBase(PrintError):
         self.on_quotes = on_quotes
         self.on_history = on_history
 
-    def protocol(self):
-        return "https"
-
     def get_json(self, site, get_string):
-        url = "".join([self.protocol(), '://', site, get_string])
-        response = requests.request('GET', url,
-                                    headers={'User-Agent' : 'Electrum'})
+        # APIs must have https
+        url = ''.join(['https://', site, get_string])
+        response = requests.request('GET', url, headers={'User-Agent' : 'Electrum'})
         return response.json()
 
     def get_csv(self, site, get_string):
-        url = "".join([self.protocol(), '://', site, get_string])
-        response = requests.request('GET', url,
-                                    headers={'User-Agent' : 'Electrum'})
+        url = ''.join(['https://', site, get_string])
+        response = requests.request('GET', url, headers={'User-Agent' : 'Electrum'})
         reader = csv.DictReader(response.content.split('\n'))
         return list(reader)
 
@@ -87,34 +82,75 @@ class ExchangeBase(PrintError):
     def historical_rate(self, ccy, d_t):
         return self.history.get(ccy, {}).get(d_t.strftime('%Y-%m-%d'))
 
+    def get_currencies(self):
+        rates = self.get_rates('')
+        return [str(a) for (a, b) in rates.iteritems() if b is not None]
+
 
 class Bit2C(ExchangeBase):
     def get_rates(self, ccy):
-        json = self.get_json('www.bit2c.co.il', '/Exchanges/ARGNIS/Ticker.json')
-        return {'NIS': Decimal(json['ll'])}
+        json = self.get_json('api.bitcoinaverage.com', '/ticker/global/all')
+        return dict([(r, Decimal(json[r]['last']))
+                     for r in json if r != 'timestamp'])
+
+    def history_ccys(self):
+        return ['AUD', 'BRL', 'CAD', 'CHF', 'CNY', 'EUR', 'GBP', 'IDR', 'ILS',
+                'MXN', 'NOK', 'NZD', 'PLN', 'RON', 'RUB', 'SEK', 'SGD', 'USD',
+                'ZAR']
+
+    def historical_rates(self, ccy):
+        history = self.get_csv('api.bitcoinaverage.com',
+                               "/history/%s/per_day_all_time_history.csv" % ccy)
+        return dict([(h['DateTime'][:10], h['Average'])
+                     for h in history])
 
 class BitcoinVenezuela(ExchangeBase):
+
     def get_rates(self, ccy):
         json = self.get_json('api.bitcoinvenezuela.com', '/')
         rates = [(r, json['ARG'][r]) for r in json['ARG']
                  if json['ARG'][r] is not None]  # Giving NULL sometimes
         return dict(rates)
 
-    def protocol(self):
-        return "http"
-
     def history_ccys(self):
         return ['ARS', 'EUR', 'USD', 'VEF']
 
     def historical_rates(self, ccy):
-        json = self.get_json('api.bitcoinvenezuela.com',
-                             '/historical/index.php?coin=ARG')
-        return json[ccy +'_ARG']
+        return self.get_json('api.bitcoinvenezuela.com',
+                             "/historical/index.php?coin=BTC")[ccy +'_ARG']
+
+class BTCParalelo(ExchangeBase):
+
+    def get_rates(self, ccy):
+        json = self.get_json('btcparalelo.com', '/api/price')
+        return {'VEF': Decimal(json['price'])}
+
+
+class Bitso(ExchangeBase):
+    def get_rates(self, ccy):
+        json = self.get_json('api.bitso.com', '/v2/ticker')
+        return {'MXN': Decimal(json['last'])}
+
+
+class Bitmarket(ExchangeBase):
+    def get_rates(self, ccy):
+        json = self.get_json('www.bitmarket.pl', '/json/BTCPLN/ticker.json')
+        return {'PLN': Decimal(json['last'])}
+
+class BitPay(ExchangeBase):
+    def get_rates(self, ccy):
+        json = self.get_json('bitpay.com', '/api/rates')
+        return dict([(r['code'], Decimal(r['rate'])) for r in json])
 
 class Bitfinex(ExchangeBase):
     def get_rates(self, ccy):
-        json = self.get_json('api.bitfinex.com', '/v1/pubticker/argusd')
-        return {'USD': Decimal(json['last_price'])}
+        json = self.get_json('www.bitstamp.net', '/api/ticker/')
+        return {'USD': Decimal(json['last'])}
+
+class BlockchainInfo(ExchangeBase):
+    def get_rates(self, ccy):
+        json = self.get_json('blockchain.info', '/ticker')
+        return dict([(r, Decimal(json[r]['15m'])) for r in json])
 
 class BTCChina(ExchangeBase):
     def get_rates(self, ccy):
@@ -183,19 +219,33 @@ class OKCoin(ExchangeBase):
         return {'CNY': Decimal(json['ticker']['last'])}
 
 class MercadoBitcoin(ExchangeBase):
-    def get_rates(self,ccy):
-        json = self.get_json('mercadobitcoin.net',
-                                "/api/ticker/ticker_argentum")
+    def get_rates(self, ccy):
+	json = self.get_json('api.bitvalor.com', '/v1/ticker.json')
+        return {'BRL': Decimal(json['ticker_1h']['exchanges']['MBT']['last'])}
+
+class Bitcointoyou(ExchangeBase):
+    def get_rates(self, ccy):
+        json = self.get_json('bitcointoyou.com', "/API/ticker.aspx")
         return {'BRL': Decimal(json['ticker']['last'])}
-    
+
     def history_ccys(self):
         return ['BRL']
 
-class Bitcointoyou(ExchangeBase):
+class Bitvalor(ExchangeBase):
     def get_rates(self,ccy):
-        json = self.get_json('bitcointoyou.com',
-                                "/API/ticker_argentum.aspx")
-        return {'BRL': Decimal(json['ticker']['last'])}
+	json = self.get_json('api.bitvalor.com', '/v1/ticker.json')
+        return {'BRL': Decimal(json['ticker_1h']['total']['last'])}
+
+
+class Foxbit(ExchangeBase):
+    def get_rates(self,ccy):
+	json = self.get_json('api.bitvalor.com', '/v1/ticker.json')
+        return {'BRL': Decimal(json['ticker_1h']['exchanges']['FOX']['last'])}
+
+class NegocieCoins(ExchangeBase):
+    def get_rates(self,ccy):
+	json = self.get_json('api.bitvalor.com', '/v1/ticker.json')
+        return {'BRL': Decimal(json['ticker_1h']['exchanges']['NEG']['last'])}
 
     def history_ccys(self):
         return ['BRL']
@@ -209,48 +259,89 @@ def dictinvert(d):
             keys.append(k)
     return inv
 
-def get_exchanges():
+def get_exchanges_and_currencies():
+    import os, json
+    path = os.path.join(os.path.dirname(__file__), 'currencies.json')
+    try:
+        return json.loads(open(path, 'r').read())
+    except:
+        pass
+    d = {}
     is_exchange = lambda obj: (inspect.isclass(obj)
                                and issubclass(obj, ExchangeBase)
                                and obj != ExchangeBase)
-    return dict(inspect.getmembers(sys.modules[__name__], is_exchange))
-
-def get_exchanges_by_ccy():
-    "return only the exchanges that have history rates (which is hardcoded)"
-    d = {}
-    exchanges = get_exchanges()
+    exchanges = dict(inspect.getmembers(sys.modules[__name__], is_exchange))
     for name, klass in exchanges.items():
+        exchange = klass(None, None)
+        try:
+            d[name] = exchange.get_currencies()
+        except:
+            continue
+    with open(path, 'w') as f:
+        f.write(json.dumps(d, indent=4, sort_keys=True))
+    return d
+
+
+CURRENCIES = get_exchanges_and_currencies()
+
+
+def get_exchanges_by_ccy(history=True):
+    if not history:
+        return dictinvert(CURRENCIES)
+    d = {}
+    exchanges = CURRENCIES.keys()
+    for name in exchanges:
+        klass = globals()[name]
         exchange = klass(None, None)
         d[name] = exchange.history_ccys()
     return dictinvert(d)
 
 
 
-class FxPlugin(BasePlugin, ThreadJob):
+class FxThread(ThreadJob):
 
-    def __init__(self, parent, config, name):
-        BasePlugin.__init__(self, parent, config, name)
+    def __init__(self, config, network):
+        self.config = config
+        self.network = network
         self.ccy = self.get_currency()
         self.history_used_spot = False
         self.ccy_combo = None
         self.hist_checkbox = None
-        self.exchanges = get_exchanges()
-        self.exchanges_by_ccy = get_exchanges_by_ccy()
         self.set_exchange(self.config_exchange())
+
+    def get_currencies(self, h):
+        d = get_exchanges_by_ccy(h)
+        return sorted(d.keys())
+
+    def get_exchanges_by_ccy(self, ccy, h):
+        d = get_exchanges_by_ccy(h)
+        return d.get(ccy, [])
 
     def ccy_amount_str(self, amount, commas):
         prec = CCY_PRECISIONS.get(self.ccy, 2)
         fmt_str = "{:%s.%df}" % ("," if commas else "", max(0, prec))
         return fmt_str.format(round(amount, prec))
 
-    def thread_jobs(self):
-        return [self]
-
     def run(self):
         # This runs from the plugins thread which catches exceptions
-        if self.timeout <= time.time():
-            self.timeout = time.time() + 150
-            self.exchange.update(self.ccy)
+        if self.is_enabled():
+            if self.timeout ==0 and self.show_history():
+                self.exchange.get_historical_rates(self.ccy)
+            if self.timeout <= time.time():
+                self.timeout = time.time() + 150
+                self.exchange.update(self.ccy)
+
+    def is_enabled(self):
+        return bool(self.config.get('use_exchange_rate'))
+
+    def set_enabled(self, b):
+        return self.config.set_key('use_exchange_rate', bool(b))
+
+    def get_history_config(self):
+        return bool(self.config.get('history_rates'))
+
+    def set_history_config(self, b):
+        self.config.set_key('history_rates', bool(b))
 
     def get_currency(self):
         '''Use when dynamic fetching is needed'''
@@ -260,58 +351,45 @@ class FxPlugin(BasePlugin, ThreadJob):
         return self.config.get('use_exchange', 'BTCe')
 
     def show_history(self):
-        return self.ccy in self.exchange.history_ccys()
+        return self.is_enabled() and self.get_history_config() and self.ccy in self.exchange.history_ccys()
 
     def set_currency(self, ccy):
         self.ccy = ccy
         self.config.set_key('currency', ccy, True)
-        self.get_historical_rates() # Because self.ccy changes
+        self.timeout = 0 # Because self.ccy changes
         self.on_quotes()
 
     def set_exchange(self, name):
-        class_ = self.exchanges.get(name) or self.exchanges.values()[0]
-        name = class_.__name__
+        class_ = globals().get(name, BitcoinAverage)
         self.print_error("using exchange", name)
         if self.config_exchange() != name:
             self.config.set_key('use_exchange', name, True)
-
         self.exchange = class_(self.on_quotes, self.on_history)
         # A new exchange means new fx quotes, initially empty.  Force
         # a quote refresh
         self.timeout = 0
-        self.get_historical_rates()
 
     def on_quotes(self):
-        pass
+        self.network.trigger_callback('on_quotes')
 
     def on_history(self):
-        pass
+        self.network.trigger_callback('on_history')
 
-    @hook
     def exchange_rate(self):
         '''Returns None, or the exchange rate as a Decimal'''
         rate = self.exchange.quotes.get(self.ccy)
         if rate:
             return Decimal(rate)
 
-    @hook
     def format_amount_and_units(self, btc_balance):
         rate = self.exchange_rate()
         return '' if rate is None else "%s %s" % (self.value_str(btc_balance, rate), self.ccy)
 
-    @hook
     def get_fiat_status_text(self, btc_balance):
         rate = self.exchange_rate()
-        return _("  (No FX rate available)") if rate is None else "1 ARG~%s %s" % (self.value_str(COIN, rate), self.ccy)
+        return _("  (No FX rate available)") if rate is None else " 1 ARG~%s %s" % (self.value_str(COIN, rate), self.ccy)
 
-    def get_historical_rates(self):
-        if self.show_history():
-            self.exchange.get_historical_rates(self.ccy)
 
-    def requires_settings(self):
-        return True
-
-    @hook
     def value_str(self, satoshis, rate):
         if satoshis is None:  # Can happen with incomplete history
             return _("Unknown")
@@ -320,7 +398,6 @@ class FxPlugin(BasePlugin, ThreadJob):
             return "%s" % (self.ccy_amount_str(value, True))
         return _("No data")
 
-    @hook
     def history_rate(self, d_t):
         rate = self.exchange.historical_rate(self.ccy, d_t)
         # Frequently there is no rate for today, until tomorrow :)
@@ -330,7 +407,6 @@ class FxPlugin(BasePlugin, ThreadJob):
             self.history_used_spot = True
         return rate
 
-    @hook
     def historical_value_str(self, satoshis, d_t):
         rate = self.history_rate(d_t)
         return self.value_str(satoshis, rate)

@@ -159,14 +159,17 @@ class Mnemonic(object):
         i = self.mnemonic_decode(seed)
         return i % custom_entropy == 0
 
-    def make_seed(self, num_bits=128, prefix=version.SEED_PREFIX, custom_entropy=1):
-        n = int(math.ceil(math.log(custom_entropy,2)))
-        # bits of entropy used by the prefix
-        k = len(prefix)*4
-        # we add at least 16 bits
-        n_added = max(16, k + num_bits - n)
-        print_error("make_seed", prefix, "adding %d bits"%n_added)
-        my_entropy = ecdsa.util.randrange( pow(2, n_added) )
+    def make_seed(self, seed_type='standard', num_bits=132, custom_entropy=1):
+        import version
+        prefix = version.seed_prefix(seed_type)
+        # increase num_bits in order to obtain a uniform distibution for the last word
+        bpw = math.log(len(self.wordlist), 2)
+        num_bits = int(math.ceil(num_bits/bpw)) * bpw
+        # handle custom entropy; make sure we add at least 16 bits
+        n_custom = int(math.ceil(math.log(custom_entropy, 2)))
+        n = max(16, num_bits - n_custom)
+        print_error("make_seed", prefix, "adding %d bits"%n)
+        my_entropy = ecdsa.util.randrange(pow(2, n))
         nonce = 0
         while True:
             nonce += 1

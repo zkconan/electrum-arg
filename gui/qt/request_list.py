@@ -34,6 +34,8 @@ from util import MyTreeWidget, pr_tooltips, pr_icons
 
 
 class RequestList(MyTreeWidget):
+    filter_columns = [0, 1, 2, 3, 4]  # Date, Account, Address, Description, Amount
+
 
     def __init__(self, parent):
         MyTreeWidget.__init__(self, parent, self.create_menu, [_('Date'), _('Address'), '', _('Description'), _('Amount'), _('Status')], 3)
@@ -116,6 +118,6 @@ class RequestList(MyTreeWidget):
         menu.addAction(_("Copy %s")%column_title, lambda: self.parent.app.clipboard().setText(column_data))
         menu.addAction(_("Copy URI"), lambda: self.parent.view_and_paste('URI', '', self.parent.get_request_URI(addr)))
         menu.addAction(_("Save as BIP70 file"), lambda: self.parent.export_payment_request(addr))
-        menu.addAction(_("Delete"), lambda: self.parent.delete_payment_request(item))
+        menu.addAction(_("Delete"), lambda: self.parent.delete_payment_request(addr))
         run_hook('receive_list_menu', menu, addr)
         menu.exec_(self.viewport().mapToGlobal(position))

@@ -34,6 +34,7 @@ from electrum_arg.bitcoin import is_address
 
 
 class AddressList(MyTreeWidget):
+    filter_columns = [0, 1, 2]  # Address, Label, Balance
 
     def __init__(self, parent=None):
         MyTreeWidget.__init__(self, parent, self.create_menu, [ _('Address'), _('Label'), _('Balance'), _('Tx')], 1)
@@ -84,20 +85,11 @@ class AddressList(MyTreeWidget):
                         seq_item.addChild(address_item)
                     if address == current_address:
                         self.setCurrentItem(address_item)
-                    # add utxos
-                    utxos = self.wallet.get_addr_utxo(address)
-                    for x in utxos:
-                        h = x.get('prevout_hash')
-                        s = h + ":%d"%x.get('prevout_n')
-                        label = self.wallet.get_label(h)
-                        utxo_item = QTreeWidgetItem([s, label, self.parent.format_amount(x['value'])])
-                        utxo_item.setFont(0, QFont(MONOSPACE_FONT))
-                        address_item.addChild(utxo_item)
 
     def create_menu(self, position):
-        from electrum_arg.wallet import Multisig_Wallet, Imported_Wallet
+        from electrum_arg.wallet import Multisig_Wallet
         is_multisig = isinstance(self.wallet, Multisig_Wallet)
-        is_imported = isinstance(self.wallet, Imported_Wallet)
+        can_delete = self.wallet.can_delete_address()
         selected = self.selectedItems()
         multi_select = len(selected) > 1
         addrs = [unicode(item.text(0)) for item in selected]
@@ -110,11 +102,7 @@ class AddressList(MyTreeWidget):
                 return
             addr = addrs[0]
             if not is_address(addr):
-                k = str(item.data(0,32).toString())
-                if k:
-                    self.create_account_menu(position, k, item)
-                else:
-                    item.setExpanded(not item.isExpanded())
+                item.setExpanded(not item.isExpanded())
                 return
 
         menu = QMenu()
@@ -131,21 +119,20 @@ class AddressList(MyTreeWidget):
             if not is_multisig and not self.wallet.is_watching_only():
                 menu.addAction(_("Sign/verify message"), lambda: self.parent.sign_verify_message(addr))
                 menu.addAction(_("Encrypt/decrypt message"), lambda: self.parent.encrypt_message(addr))
-            if is_imported:
+            if can_delete:
                 menu.addAction(_("Remove from wallet"), lambda: self.parent.remove_address(addr))
             addr_URL = block_explorer_URL(self.config, 'addr', addr)
             if addr_URL:
                 menu.addAction(_("View on block explorer"), lambda: webbrowser.open(addr_URL))
 
-        if any(not self.wallet.is_frozen(addr) for addr in addrs):
-            menu.addAction(_("Freeze"), lambda: self.parent.set_frozen_state(addrs, True))
-        if any(self.wallet.is_frozen(addr) for addr in addrs):
-            menu.addAction(_("Unfreeze"), lambda: self.parent.set_frozen_state(addrs, False))
+            if not self.wallet.is_frozen(addr):
+                menu.addAction(_("Freeze"), lambda: self.parent.set_frozen_state([addr], True))
+            else:
+                menu.addAction(_("Unfreeze"), lambda: self.parent.set_frozen_state([addr], False))
 
-        def can_send(addr):
-            return not self.wallet.is_frozen(addr) and sum(self.wallet.get_addr_balance(addr)[:2])
-        if any(can_send(addr) for addr in addrs):
-            menu.addAction(_("Send From"), lambda: self.parent.send_from_addresses(addrs))
+        coins = self.wallet.get_utxos(addrs)
+        if coins:
+            menu.addAction(_("Spend from"), lambda: self.parent.spend_coins(coins))
 
         run_hook('receive_menu', menu, addrs, self.wallet)
         menu.exec_(self.viewport().mapToGlobal(position))

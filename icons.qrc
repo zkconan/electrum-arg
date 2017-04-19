@@ -7,13 +7,13 @@
     <file>icons/clock4.png</file>
     <file>icons/clock5.png</file>
     <file>icons/confirmed.png</file>
-    <file>icons/cold_seed.png</file>
     <file>icons/copy.png</file>
+    <file>icons/digitalbitbox.png</file>
+    <file>icons/digitalbitbox_unpaired.png</file>
     <file>icons/expired.png</file>
     <file>icons/electrum_light_icon.png</file>
     <file>icons/electrum_dark_icon.png</file>
     <file>icons/file.png</file>
-    <file>icons/hot_seed.png</file>
     <file>icons/keepkey.png</file>
     <file>icons/keepkey_unpaired.png</file>
     <file>icons/key.png</file>
@@ -26,14 +26,17 @@
     <file>icons/preferences.png</file>
     <file>icons/seed.png</file>
     <file>icons/status_connected.png</file>
+    <file>icons/status_connected_proxy.png</file>
     <file>icons/status_disconnected.png</file>
     <file>icons/status_waiting.png</file>
     <file>icons/status_lagging.png</file>
     <file>icons/seal.png</file>
+    <file>icons/tor_logo.png</file>
     <file>icons/speaker.png</file>
     <file>icons/trezor_unpaired.png</file>
     <file>icons/trezor.png</file>
-    <file>icons/trustedcoin.png</file>
+    <file>icons/trustedcoin-status.png</file>
+    <file>icons/trustedcoin-wizard.png</file>
     <file>icons/unconfirmed.png</file>
     <file>icons/unpaid.png</file>
     <file>icons/unlock.png</file>
