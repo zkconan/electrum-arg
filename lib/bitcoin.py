@@ -79,10 +79,9 @@ def set_testnet():
 
 ################################## transactions
 
-DUST_SOFT_LIMIT = 50000
 MIN_RELAY_TX_FEE = 50000
 FEE_STEP = 10000
-MAX_FEE_RATE = 15000000
+MAX_FEE_RATE = 500000
 FEE_TARGETS = [25, 10, 5, 2]
 
 COINBASE_MATURITY = 100
