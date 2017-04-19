@@ -2,7 +2,7 @@
 
 # You probably need to update only this link
 ELECTRUM_GIT_URL=git://github.com/argentumproject/electrum-arg.git
-BRANCH=master
+BRANCH=test
 NAME_ROOT=electrum-arg
 
 
@@ -19,38 +19,38 @@ set -e
 
 cd tmp
 
-if [ -d "electrum-git" ]; then
+if [ -d "electrum-arg-git" ]; then
     # GIT repository found, update it
     echo "Pull"
-    cd electrum-git
+    cd electrum-arg-git
     git checkout master
     git pull
     cd ..
 else
     # GIT repository not found, clone it
     echo "Clone"
-    git clone -b $BRANCH $ELECTRUM_GIT_URL electrum-git
+    git clone -b $BRANCH $ELECTRUM_GIT_URL electrum-arg-git
 fi
 
-cd electrum-git
+cd electrum-arg-git
 VERSION=`git describe --tags`
 echo "Last commit: $VERSION"
 
 cd ..
 
-rm -rf $WINEPREFIX/drive_c/electrum
-cp -r electrum-git $WINEPREFIX/drive_c/electrum
-cp electrum-git/LICENCE .
+rm -rf $WINEPREFIX/drive_c/electrum-arg
+cp -r electrum-arg-git $WINEPREFIX/drive_c/electrum-arg
+cp electrum-arg-git/LICENCE .
 
 # add python packages (built with make_packages)
-cp -r ../../../packages $WINEPREFIX/drive_c/electrum/
+cp -r ../../../packages $WINEPREFIX/drive_c/electrum-arg/
 
 # add locale dir
-cp -r ../../../lib/locale $WINEPREFIX/drive_c/electrum/lib/
+cp -r ../../../lib/locale $WINEPREFIX/drive_c/electrum-arg/lib/
 
 # Build Qt resources
-wine $WINEPREFIX/drive_c/Python27/Lib/site-packages/PyQt4/pyrcc4.exe C:/electrum/icons.qrc -o C:/electrum/lib/icons_rc.py
-wine $WINEPREFIX/drive_c/Python27/Lib/site-packages/PyQt4/pyrcc4.exe C:/electrum/icons.qrc -o C:/electrum/gui/qt/icons_rc.py
+wine $WINEPREFIX/drive_c/Python27/Lib/site-packages/PyQt4/pyrcc4.exe C:/electrum-arg/icons.qrc -o C:/electrum-arg/lib/icons_rc.py
+wine $WINEPREFIX/drive_c/Python27/Lib/site-packages/PyQt4/pyrcc4.exe C:/electrum-arg/icons.qrc -o C:/electrum-arg/gui/qt/icons_rc.py
 
 cd ..
 
@@ -64,12 +64,12 @@ $PYTHON "C:/pyinstaller/pyinstaller.py" --noconfirm --ascii --name $NAME_ROOT-$V
 wine "$WINEPREFIX/drive_c/Program Files (x86)/NSIS/makensis.exe" /DPRODUCT_VERSION=$VERSION electrum.nsi
 
 cd dist
-mv electrum-setup.exe $NAME_ROOT-$VERSION-setup.exe
+mv electrum-arg-setup.exe $NAME_ROOT-$VERSION-setup.exe
 cd ..
 
 # build portable version
-cp portable.patch $WINEPREFIX/drive_c/electrum
-pushd $WINEPREFIX/drive_c/electrum
+cp portable.patch $WINEPREFIX/drive_c/electrum-arg
+pushd $WINEPREFIX/drive_c/electrum-arg
 patch < portable.patch 
 popd
 $PYTHON "C:/pyinstaller/pyinstaller.py" --noconfirm --ascii --name $NAME_ROOT-$VERSION-portable.exe -w deterministic.spec
