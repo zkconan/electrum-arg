@@ -43,7 +43,7 @@ class FeeSlider(QSlider):
         with self.lock:
             self.dyn = self.config.is_dynfee()
             if self.dyn:
-                pos = self.config.get('fee_level', 2)
+                pos = self.config.get('fee_level', 0)
                 fee_rate = self.config.dynfee(pos)
                 self.setRange(0, 4)
                 self.setValue(pos)
