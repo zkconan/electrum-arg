@@ -74,3 +74,5 @@ wine nsis.exe
 # add dlls needed for pyinstaller:
 cp $WINEPREFIX/drive_c/windows/system32/msvcp90.dll $WINEPREFIX/drive_c/Python27/
 cp $WINEPREFIX/drive_c/windows/system32/msvcm90.dll $WINEPREFIX/drive_c/Python27/
+
+wine "$PYHOME\\Scripts\\pip.exe" install win_inet_pton
