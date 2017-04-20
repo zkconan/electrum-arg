@@ -85,6 +85,10 @@ Mac OS X
 --------
 http://docs.electrum.org/en/latest/build.html#build-electrum-on-mac-os-x
 https://apple.stackexchange.com/questions/258745/install-python-pyqt4-on-macos-10-12-sierra
+
+Mac builds are a mess
+https://github.com/spesmilo/electrum/issues/1007
+https://github.com/spesmilo/electrum/issues/1063
 ::
 
     # On MacPorts installs: 
@@ -93,7 +97,7 @@ https://apple.stackexchange.com/questions/258745/install-python-pyqt4-on-macos-1
     # On Homebrew installs: 
     ARCHFLAGS="-arch i386 -arch x86_64" sudo python setup-release.py py2app --includes sip
     
-    sudo hdiutil create -fs HFS+ -volname "Electrum-ARG" -srcfolder dist/Electrum-ARG.app dist/electrum-arg-VERSION-macosx.dmg
+    sudo hdiutil create -fs HFS+ -volname "Electrum-ARG" -srcfolder dist/Electrum.app dist/electrum-arg-VERSION-macosx.dmg
 
 Windows
 -------
