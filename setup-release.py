@@ -18,7 +18,7 @@ from lib.util import print_error
 from lib.version import ELECTRUM_VERSION as version
 
 
-name = "Electrum-ARG"
+name = "Electrum (Argentum)"
 mainscript = 'electrum-arg'
 
 if sys.version_info[:3] < (2, 6, 0):
