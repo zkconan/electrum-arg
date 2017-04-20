@@ -5,7 +5,7 @@ import time
 import sys
 import traceback
 
-import electrum_arg electrum
+import electrum_arg as electrum
 from electrum_arg import bitcoin
 from electrum_arg.bitcoin import TYPE_ADDRESS, int_to_hex, var_int
 from electrum_arg.i18n import _
