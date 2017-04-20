@@ -83,7 +83,8 @@ This directory contains the python dependencies used by Electrum.
 
 Mac OS X
 --------
-
+http://docs.electrum.org/en/latest/build.html#build-electrum-on-mac-os-x
+https://apple.stackexchange.com/questions/258745/install-python-pyqt4-on-macos-10-12-sierra
 ::
 
     # On MacPorts installs: 
