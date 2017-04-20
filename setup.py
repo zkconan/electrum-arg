@@ -33,7 +33,7 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
     ]
 
 setup(
-    name="Electrum (Argentum)",
+    name="Electrum-Argentum",
     version=version.ELECTRUM_VERSION,
     install_requires=[
         'pyaes',
