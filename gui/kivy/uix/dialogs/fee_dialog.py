@@ -75,7 +75,7 @@ class FeeDialog(Factory.Popup):
         if self.dynfees:
             slider.range = (0, 4)
             slider.step = 1
-            slider.value = self.config.get('fee_level', 2)
+            slider.value = self.config.get('fee_level', 0)
         else:
             slider.range = (1, 10)
             slider.step = 1
