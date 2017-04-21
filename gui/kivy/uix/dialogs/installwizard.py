@@ -555,7 +555,7 @@ class RestoreSeedDialog(WizardDialog):
 
     def __init__(self, wizard, **kwargs):
         super(RestoreSeedDialog, self).__init__(wizard, **kwargs)
-        self._test = kwargs['is_valid']
+        self._test = kwargs['test']
         from electrum_arg.mnemonic import Mnemonic
         from electrum_arg.old_mnemonic import words as old_wordlist
         self.words = set(Mnemonic('en').wordlist).union(set(old_wordlist))
