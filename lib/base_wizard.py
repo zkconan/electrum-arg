@@ -138,8 +138,8 @@ class BaseWizard(object):
 
     def import_addresses(self):
         v = keystore.is_address_list
-        title = _("Import Bitcoin Addresses")
-        message = _("Enter a list of Bitcoin addresses. This will create a watching-only wallet.")
+        title = _("Import Argentum Addresses")
+        message = _("Enter a list of Argentum addresses. This will create a watching-only wallet.")
         self.add_xpub_dialog(title=title, message=message, run_next=self.on_import_addresses, is_valid=v)
 
     def on_import_addresses(self, text):
@@ -217,10 +217,10 @@ class BaseWizard(object):
             self.show_error(str(e))
             self.choose_hw_device()
             return
-        # if self.wallet_type=='multisig':
-        #     # There is no general standard for HD multisig.
-        #     # This is partially compatible with BIP45; assumes index=0
-        #     self.on_hw_derivation(name, device_info, "m/45'/0") change 0 
+        if self.wallet_type=='multisig':
+            # There is no general standard for HD multisig.
+            # This is partially compatible with BIP45; assumes index=0
+            self.on_hw_derivation(name, device_info, "m/45'/0")
         else:
             f = lambda x: self.run('on_hw_derivation', name, device_info, bip44_derivation(int(x)))
             self.account_id_dialog(f)
@@ -397,15 +397,3 @@ class BaseWizard(object):
             self.terminate()
         msg = _("Electrum is generating your addresses, please wait.")
         self.waiting_dialog(task, msg)
-
-    def create_seed(self):
-        from electrum_arg.wallet import BIP32_Wallet
-        seed = BIP32_Wallet.make_seed()
-        self.show_seed_dialog(run_next=self.confirm_seed, seed_text=seed)
-
-    def confirm_seed(self, seed):
-        self.confirm_seed_dialog(run_next=self.add_password, is_valid=lambda x: x==seed)
-
-    def add_password(self, text):
-        f = lambda pw: self.run('create_wallet', text, pw)
-        self.request_password(run_next=f)
