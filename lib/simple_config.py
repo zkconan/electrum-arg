@@ -232,7 +232,7 @@ class SimpleConfig(PrintError):
     def fee_per_kb(self):
         dyn = self.is_dynfee()
         if dyn:
-            fee_rate = self.dynfee(self.get('fee_level', 2))
+            fee_rate = self.dynfee(self.get('fee_level', 0))
         else:
             fee_rate = self.get('fee_per_kb', self.max_fee_rate()/10)
         return fee_rate
