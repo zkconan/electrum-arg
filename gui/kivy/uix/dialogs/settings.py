@@ -277,7 +277,7 @@ class SettingsDialog(Factory.Popup):
 
     def fee_status(self):
         if self.config.get('dynamic_fees', True):
-            return fee_levels[self.config.get('fee_level', 2)]
+            return fee_levels[self.config.get('fee_level', 0)]
         else:
             return self.app.format_amount_and_units(self.config.fee_per_kb()) + '/kB'
 
