@@ -586,7 +586,7 @@ class ElectrumWindow(App):
         return format_satoshis_plain(amount, self.decimal_point())
 
     def format_amount(self, x, is_diff=False, whitespaces=False):
-        return format_satoshis(x, is_diff, 0, self.decimal_point(), whitespaces)
+        return format_satoshis(x, is_diff, 8, self.decimal_point(), whitespaces)
 
     def format_amount_and_units(self, x):
         return format_satoshis_plain(x, self.decimal_point()) + ' ' + self.base_unit
