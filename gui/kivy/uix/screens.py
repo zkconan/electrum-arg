@@ -178,7 +178,7 @@ class SendScreen(CScreen):
     def set_URI(self, text):
         import electrum_arg as electrum
         try:
-            uri = electrum_arg.util.parse_URI(text, self.app.on_pr)
+            uri = electrum.util.parse_URI(text, self.app.on_pr)
         except:
             self.app.show_info(_("Not an Argentum URI"))
             return
