@@ -36,7 +36,7 @@ except ImportError:
     util.print_msg("Warning: ltc_scrypt not available, using fallback")
     from scrypt import scrypt_1024_1_1_80 as getPoWHash
 
-MAX_TARGET = 0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+MAX_TARGET = 0x00000000FFFF0000000000000000000000000000000000000000000000000000
 
 class Blockchain(util.PrintError):
     '''Manages blockchain headers and their verification'''
@@ -84,10 +84,10 @@ class Blockchain(util.PrintError):
             self.print_error("validated checkpoint", self.checkpoint_height)
         if bitcoin.TESTNET:
             return
-        if bits != header.get('bits'):
-            raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))
-        if int('0x' + _hash, 16) > target:
-            raise BaseException("insufficient proof of work: %s vs target %s" % (int('0x' + _hash, 16), target))
+        #if bits != header.get('bits'):
+            #raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))
+        #if int('0x' + _hash, 16) > target:
+            #raise BaseException("insufficient proof of work: %s vs target %s" % (int('0x' + _hash, 16), target))
 
     def verify_chain(self, chain):
         first_header = chain[0]
@@ -222,7 +222,7 @@ class Blockchain(util.PrintError):
         if bitcoin.TESTNET:
             return 0, 0
         if index == 0:
-            return 0x1e0ffff0, 0x00000FFFF0000000000000000000000000000000000000000000000000000000
+            return 0x1e0ffff0, MAX_TARGET
         # Argentum: go back the full period unless it's the first retarget
         first = self.read_header((index-1) * 2016 - 1 if index > 1 else 0)
         last = self.read_header(index*2016 - 1)
