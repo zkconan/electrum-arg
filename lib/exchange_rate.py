@@ -102,14 +102,14 @@ class BitcoinAverage(ExchangeBase):
         history = self.get_csv('api.bitcoinaverage.com',
                                "/history/%s/per_day_all_time_history.csv" % ccy)
         return dict([(h['DateTime'][:10], h['Average'])
-                    for h in history])
+                     for h in history])
 
 class BitcoinVenezuela(ExchangeBase):
 
     def get_rates(self, ccy):
         json = self.get_json('api.bitcoinvenezuela.com', '/')
-        rates = [(r, json['ARG'][r]) for r in json['ARG']
-                 if json['ARG'][r] is not None]  # Giving NULL sometimes
+        rates = [(r, json['BTC'][r]) for r in json['BTC']
+                 if json['BTC'][r] is not None]  # Giving NULL for LTC
         return dict(rates)
 
     def history_ccys(self):
@@ -117,7 +117,7 @@ class BitcoinVenezuela(ExchangeBase):
 
     def historical_rates(self, ccy):
         return self.get_json('api.bitcoinvenezuela.com',
-                             "/historical/index.php?coin=BTC")[ccy +'_ARG']
+                             "/historical/index.php?coin=BTC")[ccy +'_BTC']
 
 class BTCParalelo(ExchangeBase):
 
@@ -142,7 +142,7 @@ class BitPay(ExchangeBase):
         json = self.get_json('bitpay.com', '/api/rates')
         return dict([(r['code'], Decimal(r['rate'])) for r in json])
 
-class Bitfinex(ExchangeBase):
+class BitStamp(ExchangeBase):
     def get_rates(self, ccy):
         json = self.get_json('www.bitstamp.net', '/api/ticker/')
         return {'USD': Decimal(json['last'])}
@@ -154,69 +154,90 @@ class BlockchainInfo(ExchangeBase):
 
 class BTCChina(ExchangeBase):
     def get_rates(self, ccy):
-        json = self.get_json('data.btcchina.com', '/data/ticker?market=argcny')
+        json = self.get_json('data.btcchina.com', '/data/ticker')
         return {'CNY': Decimal(json['ticker']['last'])}
 
-class BTCe(ExchangeBase):
+class Coinbase(ExchangeBase):
     def get_rates(self, ccy):
-        ccys = ['EUR', 'RUR', 'USD']
-        ccy_str = '-'.join(['arg_%s' % c.lower() for c in ccys])
-        json = self.get_json('btc-e.com', '/api/3/ticker/%s' % ccy_str)
+        json = self.get_json('coinbase.com',
+                             '/api/v1/currencies/exchange_rates')
+        return dict([(r[7:].upper(), Decimal(json[r]))
+                     for r in json if r.startswith('btc_to_')])
+
+class CoinDesk(ExchangeBase):
+    def get_rates(self, ccy):
+        dicts = self.get_json('api.coindesk.com',
+                              '/v1/bpi/supported-currencies.json')
+        json = self.get_json('api.coindesk.com',
+                             '/v1/bpi/currentprice/%s.json' % ccy)
+        ccys = [d['currency'] for d in dicts]
         result = dict.fromkeys(ccys)
-        for ccy in ccys:
-            result[ccy] = Decimal(json['arg_%s' % ccy.lower()]['last'])
+        result[ccy] = Decimal(json['bpi'][ccy]['rate_float'])
         return result
 
-class CaVirtEx(ExchangeBase):
-    def get_rates(self, ccy):
-        json = self.get_json('www.cavirtex.com', '/api2/ticker.json?currencypair=ARGCAD')
-        return {'CAD': Decimal(json['ticker']['ARGCAD']['last'])}
+    def history_starts(self):
+        return { 'USD': '2012-11-30' }
 
-class CoinSpot(ExchangeBase):
-    def get_rates(self, ccy):
-        json = self.get_json('www.coinspot.com.au', '/pubapi/latest')
-        return {'AUD': Decimal(json['prices']['arg']['last'])}
+    def history_ccys(self):
+        return self.history_starts().keys()
 
-class GoCoin(ExchangeBase):
-    def get_rates(self, ccy):
-        json = self.get_json('x.g0cn.com', '/prices')
-        arg_prices = json['prices']['ARG']
-        return dict([(r, Decimal(arg_prices[r])) for r in arg_prices])
+    def historical_rates(self, ccy):
+        start = self.history_starts()[ccy]
+        end = datetime.today().strftime('%Y-%m-%d')
+        # Note ?currency and ?index don't work as documented.  Sigh.
+        query = ('/v1/bpi/historical/close.json?start=%s&end=%s'
+                 % (start, end))
+        json = self.get_json('api.coindesk.com', query)
+        return json['bpi']
 
-class HitBTC(ExchangeBase):
+class Coinsecure(ExchangeBase):
     def get_rates(self, ccy):
-        ccys = ['EUR', 'USD']
-        json = self.get_json('api.hitbtc.com', '/api/1/public/ARG%s/ticker' % ccy)
+        json = self.get_json('api.coinsecure.in', '/v0/noauth/newticker')
+        return {'INR': Decimal(json['lastprice'] / 100.0 )}
+
+class Unocoin(ExchangeBase):
+    def get_rates(self, ccy):
+        json = self.get_json('www.unocoin.com', 'trade?buy')
+        return {'INR': Decimal(json)}
+
+class itBit(ExchangeBase):
+    def get_rates(self, ccy):
+        ccys = ['USD', 'EUR', 'SGD']
+        json = self.get_json('api.itbit.com', '/v1/markets/XBT%s/ticker' % ccy)
         result = dict.fromkeys(ccys)
         if ccy in ccys:
-            result[ccy] = Decimal(json['last'])
+            result[ccy] = Decimal(json['lastPrice'])
         return result
 
 class Kraken(ExchangeBase):
     def get_rates(self, ccy):
-        dicts = self.get_json('api.kraken.com', '/0/public/AssetPairs')
-        pairs = [k for k in dicts['result'] if k.startswith('XARGZ')]
+        ccys = ['EUR', 'USD', 'CAD', 'GBP', 'JPY']
+        pairs = ['XBT%s' % c for c in ccys]
         json = self.get_json('api.kraken.com',
                              '/0/public/Ticker?pair=%s' % ','.join(pairs))
-        ccys = [p[5:] for p in pairs]
-        result = dict.fromkeys(ccys)
-        result[ccy] = Decimal(json['result']['XARGZ'+ccy]['c'][0])
-        return result
+        return dict((k[-3:], Decimal(float(v['c'][0])))
+                     for k, v in json['result'].items())
+
+class LocalBitcoins(ExchangeBase):
+    def get_rates(self, ccy):
+        json = self.get_json('localbitcoins.com',
+                             '/bitcoinaverage/ticker-all-currencies/')
+        return dict([(r, Decimal(json[r]['rates']['last'])) for r in json])
+
+class Winkdex(ExchangeBase):
+    def get_rates(self, ccy):
+        json = self.get_json('winkdex.com', '/api/v0/price')
+        return {'USD': Decimal(json['price'] / 100.0)}
 
     def history_ccys(self):
-        return ['EUR', 'USD']
+        return ['USD']
 
     def historical_rates(self, ccy):
-        query = '/0/public/OHLC?pair=ARG%s&interval=1440' % ccy
-        json = self.get_json('api.kraken.com', query)
-        history = json['result']['XARGZ'+ccy]
-        return dict([(time.strftime('%Y-%m-%d', time.localtime(t[0])), t[4])
-                                    for t in history])
-
-class OKCoin(ExchangeBase):
-    def get_rates(self, ccy):
-        json = self.get_json('www.okcoin.cn', '/api/ticker.do?symbol=arg_cny')
-        return {'CNY': Decimal(json['ticker']['last'])}
+        json = self.get_json('winkdex.com',
+                             "/api/v0/series?start_time=1342915200")
+        history = json['series'][0]['results']
+        return dict([(h['timestamp'][:10], h['price'] / 100.0)
+                     for h in history])
 
 class MercadoBitcoin(ExchangeBase):
     def get_rates(self, ccy):
@@ -348,7 +369,7 @@ class FxThread(ThreadJob):
         return self.config.get("currency", "EUR")
 
     def config_exchange(self):
-        return self.config.get('use_exchange', 'BTCe')
+        return self.config.get('use_exchange', 'BitcoinAverage')
 
     def show_history(self):
         return self.is_enabled() and self.get_history_config() and self.ccy in self.exchange.history_ccys()
