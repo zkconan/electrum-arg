@@ -102,11 +102,11 @@ Builder.load_string('''
                     description: _("Proxy configuration.")
                     action: partial(root.proxy_dialog, self)
                 CardSeparator
-                SettingsItem:
-                    status: 'ON' if bool(app.plugins.get('labels')) else 'OFF'
-                    title: _('Labels Sync') + ': ' + self.status
-                    description: _("Save and synchronize your labels.")
-                    action: partial(root.plugin_dialog, 'labels', self)
+                # SettingsItem:
+                #     status: 'ON' if bool(app.plugins.get('labels')) else 'OFF'
+                #     title: _('Labels Sync') + ': ' + self.status
+                #     description: _("Save and synchronize your labels.")
+                #     action: partial(root.plugin_dialog, 'labels', self)
                 CardSeparator
                 # SettingsItem:
                 #     status: root.rbf_status()
