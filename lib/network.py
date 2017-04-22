@@ -51,8 +51,8 @@ DEFAULT_PORTS = {'t':'50001', 's':'50002'}
 #then gradually switch remaining nodes to e-x nodes
 
 DEFAULT_SERVERS = {
-    '52.58.50.77': DEFAULT_PORTS,
-    '45.76.27.218': DEFAULT_PORTS,
+    '52.58.50.77':DEFAULT_PORTS,
+    '45.76.27.218':DEFAULT_PORTS,
 }
 
 def set_testnet():
@@ -187,6 +187,8 @@ class Network(util.DaemonThread):
         self.config = SimpleConfig(config) if type(config) == type({}) else config
         self.num_server = 8 if not self.config.get('oneserver') else 0
         self.blockchain = Blockchain(self.config, self)
+        # A deque of interface header requests, processed left-to-right
+        self.bc_requests = deque()
         # Server for addresses and transactions
         self.default_server = self.config.get('server')
         # Sanitize default server
@@ -672,11 +674,8 @@ class Network(util.DaemonThread):
 
     def new_interface(self, server, socket):
         self.add_recent_server(server)
-        interface = Interface(server, socket)
-        # A deque of interface header requests, processed left-to-right
-        interface.bc_requests = deque()
+        self.interfaces[server] = interface = Interface(server, socket)
         interface.failed_checkpoint = False
-        self.interfaces[server] = interface
         self.queue_request('blockchain.block.get_header', [self.blockchain.checkpoint_height], interface)
         self.queue_request('blockchain.headers.subscribe', [], interface)
         if server == self.default_server:
@@ -736,15 +735,15 @@ class Network(util.DaemonThread):
         if response.get('error'):
             interface.print_error(response.get('error'))
             return
-        if interface.bc_requests:
-            data = interface.bc_requests[0]
+        if self.bc_requests:
+            req_if, data = self.bc_requests[0]
             req_idx = data.get('chunk_idx')
             # Ignore unsolicited chunks
-            if req_idx == response['params'][0]:
+            if req_if == interface and req_idx == response['params'][0]:
                 idx = self.blockchain.connect_chunk(req_idx, response['result'])
                 # If not finished, get the next chunk
                 if idx < 0 or self.get_local_height() >= data['if_height']:
-                    interface.bc_requests.popleft()
+                    self.bc_requests.popleft()
                     self.notify('updated')
                 else:
                     self.request_chunk(interface, data, idx)
@@ -770,18 +769,18 @@ class Network(util.DaemonThread):
                 return
         if self.blockchain.downloading_headers:
             return
-        if interface.bc_requests:
-            data = interface.bc_requests[0]
+        if self.bc_requests:
+            req_if, data = self.bc_requests[0]
             req_height = data.get('header_height', -1)
             # Ignore unsolicited headers
-            if req_height == response['params'][0]:
+            if req_if == interface and req_height == response['params'][0]:
                 if interface.failed_checkpoint:
-                    interface.bc_requests.popleft()
+                    self.bc_requests.popleft()
                     return
                 next_height = self.blockchain.connect_header(data['chain'], response['result'])
                 # If not finished, get the next header
                 if next_height in [True, False]:
-                    interface.bc_requests.popleft()
+                    self.bc_requests.popleft()
                     if next_height:
                         self.switch_lagging_interface(interface.server)
                         self.notify('updated')
@@ -810,10 +809,8 @@ class Network(util.DaemonThread):
         '''Work through each interface that has notified us of a new header.
         Send it requests if it is ahead of our blockchain object.
         '''
-        for interface in self.interfaces.values():
-            if not interface.bc_requests:
-                continue
-            data = interface.bc_requests.popleft()
+        while self.bc_requests:
+            interface, data = self.bc_requests.popleft()
             # If the connection was lost move on
             if not interface in self.interfaces.values():
                 continue
@@ -828,7 +825,7 @@ class Network(util.DaemonThread):
                 self.connection_down(interface.server)
                 continue
             # Put updated request state back at head of deque
-            interface.bc_requests.appendleft(data)
+            self.bc_requests.appendleft((interface, data))
             break
 
     def wait_on_sockets(self):
@@ -870,7 +867,7 @@ class Network(util.DaemonThread):
         self.headers[i.server] = header
 
         # Queue this interface's height for asynchronous catch-up
-        i.bc_requests.append({'if_height': height})
+        self.bc_requests.append((i, {'if_height': height}))
 
         if i == self.interface:
             self.switch_lagging_interface()
