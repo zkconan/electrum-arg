@@ -2432,7 +2432,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         fee_widgets.append((maxfee_label, maxfee_e))
 
         feebox_cb = QCheckBox(_('Edit fees manually'))
-        feebox_cb.setChecked(self.config.get('show_fee', False))
+        feebox_cb.setChecked(self.config.get('show_fee', True))
         feebox_cb.setToolTip(_("Show fee edit box in send tab."))
         def on_feebox(x):
             self.config.set_key('show_fee', x == Qt.Checked)
