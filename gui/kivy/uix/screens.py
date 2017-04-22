@@ -180,7 +180,7 @@ class SendScreen(CScreen):
         try:
             uri = electrum_arg.util.parse_URI(text, self.app.on_pr)
         except:
-            self.app.show_info(_("Not a Argentum URI"))
+            self.app.show_info(_("Not an Argentum URI"))
             return
         amount = uri.get('amount')
         self.screen.address = uri.get('address', '')

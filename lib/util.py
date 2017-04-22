@@ -380,12 +380,12 @@ def parse_URI(uri, on_pr=None):
 
     if ':' not in uri:
         if not bitcoin.is_address(uri):
-            raise BaseException("Not a argentum address")
+            raise BaseException("Not an argentum address")
         return {'address': uri}
 
     u = urlparse.urlparse(uri)
     if u.scheme != 'argentum':
-        raise BaseException("Not a argentum URI")
+        raise BaseException("Not an argentum URI")
     address = u.path
 
     # python for android fails to parse query
