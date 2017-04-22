@@ -84,11 +84,11 @@ Builder.load_string('''
                     description: _("Fees paid to the Argentum miners.")
                     action: partial(root.fee_dialog, self)
                 CardSeparator
-                SettingsItem:
-                    status: root.fx_status()
-                    title: _('Fiat Currency') + ': ' + self.status
-                    description: _("Display amounts in fiat currency.")
-                    action: partial(root.fx_dialog, self)
+                # SettingsItem:
+                #     status: root.fx_status()
+                #     title: _('Fiat Currency') + ': ' + self.status
+                #     description: _("Display amounts in fiat currency.")
+                #     action: partial(root.fx_dialog, self)
                 CardSeparator
                 SettingsItem:
                     status: root.network_status()
