@@ -193,7 +193,7 @@ class CoinDesk(ExchangeBase):
 class CoinMarketCap(ExchangeBase):
     def get_rates(self, ccy):
         json = self.get_json('api.coinmarketcap.com', '/v1/ticker/argentum/')
-        return {Decimal(json['price_usd'])}
+        return {'USD': Decimal(json['price_usd'])}
 
 class Coinsecure(ExchangeBase):
     def get_rates(self, ccy):
