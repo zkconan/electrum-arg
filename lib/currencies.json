@@ -540,6 +540,9 @@
         "JPY", 
         "XAU"
     ], 
+    "CoinMarketCap": [
+        "USD"
+    ], 
     "Coinsecure": [
         "INR"
     ], 
