@@ -187,8 +187,6 @@ class Network(util.DaemonThread):
         self.config = SimpleConfig(config) if type(config) == type({}) else config
         self.num_server = 8 if not self.config.get('oneserver') else 0
         self.blockchain = Blockchain(self.config, self)
-        # A deque of interface header requests, processed left-to-right
-        self.bc_requests = deque()
         # Server for addresses and transactions
         self.default_server = self.config.get('server')
         # Sanitize default server
@@ -759,8 +757,7 @@ class Network(util.DaemonThread):
         '''Handle receiving a single block header'''
         if self.blockchain.downloading_headers:
             return
-        if self.bc_requests:
-            header = response.get('result')
+        header = response.get('result')
         if not header:
             interface.print_error(response)
             self.connection_down(interface.server)
