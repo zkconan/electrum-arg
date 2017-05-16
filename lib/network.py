@@ -760,7 +760,7 @@ class Network(util.DaemonThread):
         if self.blockchain.downloading_headers:
             return
         if self.bc_requests:
-        header = response.get('result')
+            header = response.get('result')
         if not header:
             interface.print_error(response)
             self.connection_down(interface.server)
