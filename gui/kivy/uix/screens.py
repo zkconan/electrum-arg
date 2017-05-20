@@ -20,7 +20,6 @@ from kivy.utils import platform
 from electrum_arg.util import profiler, parse_URI, format_time, InvalidPassword, NotEnoughFunds
 from electrum_arg import bitcoin
 from electrum_arg.util import timestamp_to_datetime
-from electrum_arg.plugins import run_hook
 from electrum_arg.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
 
 from context_menu import ContextMenu
@@ -145,12 +144,12 @@ class HistoryScreen(CScreen):
         ri.date = status_str
         ri.message = label
         ri.value = value or 0
-        ri.value_known = value is not None
+        ri.amount = self.app.format_amount(value, True) if value is not None else '--'
         ri.confirmations = conf
         if self.app.fiat_unit and date:
-            rate = run_hook('history_rate', date)
+            rate = self.app.fx.history_rate(date)
             if rate:
-                s = run_hook('value_str', value, rate)
+                s = self.app.fx.value_str(value, rate)
                 ri.quote_text = '' if s is None else s + ' ' + self.app.fiat_unit
         return ri
 
@@ -181,7 +180,7 @@ class SendScreen(CScreen):
         try:
             uri = electrum.util.parse_URI(text, self.app.on_pr)
         except:
-            self.app.show_info(_("Not a Argentum URI"))
+            self.app.show_info(_("Not an Argentum URI"))
             return
         amount = uri.get('amount')
         self.screen.address = uri.get('address', '')
@@ -225,7 +224,7 @@ class SendScreen(CScreen):
         req['amount'] = amount
         pr = make_unsigned_request(req).SerializeToString()
         pr = PaymentRequest(pr)
-        self.app.invoices.add(pr)
+        self.app.wallet.invoices.add(pr)
         self.app.update_tab('invoices')
         self.app.show_info(_("Invoice saved"))
         if pr.is_pr():
@@ -285,7 +284,7 @@ class SendScreen(CScreen):
             self.app.show_error(str(e))
             return
         if rbf:
-            tx.set_sequence(0)
+            tx.set_rbf(False)
         fee = tx.get_fee()
         msg = [
             _("Amount to be sent") + ": " + self.app.format_amount_and_units(amount),
@@ -331,12 +330,15 @@ class ReceiveScreen(CScreen):
     def get_new_address(self):
         if not self.app.wallet:
             return False
+        self.clear()
         addr = self.app.wallet.get_unused_address()
         if addr is None:
-            return False
-        self.clear()
+            addr = self.app.wallet.get_receiving_address() or ''
+            b = False
+        else:
+            b = True
         self.screen.address = addr
-        return True
+        return b
 
     def on_address(self, addr):
         req = self.app.wallet.get_payment_request(addr, self.app.electrum_config)
@@ -433,7 +435,7 @@ class InvoicesScreen(CScreen):
         amount = pr.get_amount()
         if amount:
             ci.amount = self.app.format_amount_and_units(amount)
-            status = self.app.invoices.get_status(ci.key)
+            status = self.app.wallet.invoices.get_status(ci.key)
             ci.status = invoice_text[status]
             ci.icon = pr_icon[status]
         else:
@@ -447,7 +449,7 @@ class InvoicesScreen(CScreen):
         self.menu_actions = [('Pay', self.do_pay), ('Details', self.do_view), ('Delete', self.do_delete)]
         invoices_list = self.screen.ids.invoices_container
         invoices_list.clear_widgets()
-        _list = self.app.invoices.sorted_list()
+        _list = self.app.wallet.invoices.sorted_list()
         for pr in _list:
             ci = self.get_card(pr)
             invoices_list.add_widget(ci)
@@ -456,19 +458,19 @@ class InvoicesScreen(CScreen):
             invoices_list.add_widget(EmptyLabel(text=msg))
 
     def do_pay(self, obj):
-        pr = self.app.invoices.get(obj.key)
+        pr = self.app.wallet.invoices.get(obj.key)
         self.app.on_pr(pr)
 
     def do_view(self, obj):
-        pr = self.app.invoices.get(obj.key)
-        pr.verify(self.app.contacts)
+        pr = self.app.wallet.invoices.get(obj.key)
+        pr.verify(self.app.wallet.contacts)
         self.app.show_pr_details(pr.get_dict(), obj.status, True)
 
     def do_delete(self, obj):
         from dialogs.question import Question
         def cb(result):
             if result:
-                self.app.invoices.remove(obj.key)
+                self.app.wallet.invoices.remove(obj.key)
                 self.app.update_tab('invoices')
         d = Question(_('Delete invoice?'), cb)
         d.open()

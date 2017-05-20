@@ -29,8 +29,8 @@ from electrum_arg.i18n import _
 from electrum_arg.util import block_explorer_URL, format_satoshis, format_time
 from electrum_arg.plugins import run_hook
 
-
 class InvoiceList(MyTreeWidget):
+    filter_columns = [0, 1, 2, 3]  # Date, Requestor, Description, Amount
 
     def __init__(self, parent):
         MyTreeWidget.__init__(self, parent, self.create_menu, [_('Expires'), _('Requestor'), _('Description'), _('Amount'), _('Status')], 2)
@@ -39,7 +39,7 @@ class InvoiceList(MyTreeWidget):
         self.setColumnWidth(1, 200)
 
     def on_update(self):
-        inv_list = self.parent.invoices.sorted_list()
+        inv_list = self.parent.invoices.unpaid_invoices()
         self.clear()
         for pr in inv_list:
             key = pr.get_id()
@@ -57,17 +57,23 @@ class InvoiceList(MyTreeWidget):
         self.setVisible(len(inv_list))
         self.parent.invoices_label.setVisible(len(inv_list))
 
-    def create_menu(self, position):
-        item = self.itemAt(position)
-        if not item:
+    def import_invoices(self):
+        wallet_folder = self.parent.get_wallet_folder()
+        filename = unicode(QFileDialog.getOpenFileName(self.parent, "Select your wallet file", wallet_folder))
+        if not filename:
             return
+        self.parent.invoices.import_file(filename)
+        self.on_update()
+
+    def create_menu(self, position):
+        menu = QMenu()
+        item = self.itemAt(position)
         key = str(item.data(0, 32).toString())
-        column = self.currentColumn()        
+        column = self.currentColumn()
         column_title = self.headerItem().text(column)
         column_data = item.text(column)
         pr = self.parent.invoices.get(key)
         status = self.parent.invoices.get_status(key)
-        menu = QMenu()
         if column_data:
             menu.addAction(_("Copy %s")%column_title, lambda: self.parent.app.clipboard().setText(column_data))
         menu.addAction(_("Details"), lambda: self.parent.show_invoice(key))

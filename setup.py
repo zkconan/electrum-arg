@@ -33,10 +33,10 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
     ]
 
 setup(
-    name="Electrum-ARG",
+    name="Electrum-Argentum",
     version=version.ELECTRUM_VERSION,
     install_requires=[
-        'slowaes>=0.1a1',
+        'pyaes',
         'ecdsa>=0.9',
         'pbkdf2',
         'requests',
@@ -45,6 +45,7 @@ setup(
         'protobuf',
         'dnspython',
         'jsonrpclib',
+        'PySocks>=1.6.6',
     ],
     packages=[
         'electrum_arg',
@@ -54,13 +55,13 @@ setup(
         'electrum_arg_plugins.audio_modem',
         'electrum_arg_plugins.cosigner_pool',
         'electrum_arg_plugins.email_requests',
-        'electrum_arg_plugins.exchange_rate',
         'electrum_arg_plugins.hw_wallet',
         'electrum_arg_plugins.keepkey',
         'electrum_arg_plugins.labels',
         'electrum_arg_plugins.ledger',
-        'electrum_arg_plugins.plot',
         'electrum_arg_plugins.trezor',
+        'electrum_arg_plugins.digitalbitbox',
+        'electrum_arg_plugins.trustedcoin',
         'electrum_arg_plugins.virtualkeyboard',
     ],
     package_dir={
@@ -70,6 +71,7 @@ setup(
     },
     package_data={
         'electrum_arg': [
+            'currencies.json',
             'www/index.html',
             'wordlist/*.txt',
             'locale/*/LC_MESSAGES/electrum.mo',

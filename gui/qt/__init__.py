@@ -39,19 +39,19 @@ import PyQt4.QtCore as QtCore
 from electrum_arg.i18n import _, set_language
 from electrum_arg.plugins import run_hook
 from electrum_arg import SimpleConfig, Wallet, WalletStorage
-from electrum_arg.paymentrequest import InvoiceStore
-from electrum_arg.contacts import Contacts
 from electrum_arg.synchronizer import Synchronizer
 from electrum_arg.verifier import SPV
-from electrum_arg.util import DebugMem
+from electrum_arg.util import DebugMem, UserCancelled, InvalidPassword
 from electrum_arg.wallet import Abstract_Wallet
-from installwizard import InstallWizard
+from installwizard import InstallWizard, GoBack
 
 
 try:
     import icons_rc
 except Exception:
-    sys.exit("Error: Could not import icons_rc.py, please generate it with: 'pyrcc4 icons.qrc -o gui/qt/icons_rc.py'")
+    print "Error: Could not find icons file."
+    print "Please run 'pyrcc4 icons.qrc -o gui/qt/icons_rc.py', and reinstall Electrum"
+    sys.exit(1)
 
 from util import *   # * needed for plugins
 from main_window import ElectrumWindow
@@ -87,13 +87,10 @@ class ElectrumGui:
         self.app = QApplication(sys.argv)
         self.app.installEventFilter(self.efilter)
         self.timer = Timer()
-        # shared objects
-        self.invoices = InvoiceStore(self.config)
-        self.contacts = Contacts(self.config)
         # init tray
         self.dark_icon = self.config.get("dark_icon", False)
         self.tray = QSystemTrayIcon(self.tray_icon(), None)
-        self.tray.setToolTip('Electrum-ARG')
+        self.tray.setToolTip('Electrum (Argentum)')
         self.tray.activated.connect(self.tray_activated)
         self.build_tray_menu()
         self.tray.show()
@@ -110,7 +107,7 @@ class ElectrumGui:
             submenu.addAction(_("Close"), window.close)
         m.addAction(_("Dark/Light"), self.toggle_tray_icon)
         m.addSeparator()
-        m.addAction(_("Exit Electrum-ARG"), self.close)
+        m.addAction(_("Exit Electrum (Argentum)"), self.close)
         self.tray.setContextMenu(m)
 
     def tray_icon(self):
@@ -157,14 +154,14 @@ class ElectrumGui:
                 w.bring_to_top()
                 break
         else:
-            wallet = self.daemon.load_wallet(path)
+            wallet = self.daemon.load_wallet(path, None)
             if not wallet:
-                wizard = InstallWizard(self.config, self.app, self.plugins, self.daemon.network, path)
+                storage = WalletStorage(path)
+                wizard = InstallWizard(self.config, self.app, self.plugins, storage)
                 wallet = wizard.run_and_get_wallet()
                 if not wallet:
                     return
-                #if wallet.get_action():
-                #    return
+                wallet.start_threads(self.daemon.network)
                 self.daemon.add_wallet(wallet)
             w = self.create_window_for_wallet(wallet)
         if uri:
@@ -179,23 +176,35 @@ class ElectrumGui:
             self.config.save_last_wallet(window.wallet)
         run_hook('on_close_window', window)
 
+    def init_network(self):
+        # Show network dialog if config does not exist
+        if self.daemon.network:
+            if self.config.get('auto_connect') is None:
+                wizard = InstallWizard(self.config, self.app, self.plugins, None)
+                wizard.init_network(self.daemon.network)
+                wizard.terminate()
+
     def main(self):
+        try:
+            self.init_network()
+        except UserCancelled:
+            return
+        except GoBack:
+            return
+        except:
+            traceback.print_exc(file=sys.stdout)
+            return
         self.timer.start()
         self.config.open_last_wallet()
         path = self.config.get_wallet_path()
         if not self.start_new_window(path, self.config.get('url')):
             return
-
         signal.signal(signal.SIGINT, lambda *args: self.app.quit())
-
         # main loop
         self.app.exec_()
-
         # Shut down the timer cleanly
         self.timer.stop()
-
         # clipboard persistence. see http://www.mail-archive.com/pyqt@riverbankcomputing.com/msg17328.html
         event = QtCore.QEvent(QtCore.QEvent.Clipboard)
         self.app.sendEvent(self.app.clipboard(), event)
-
         self.tray.hide()

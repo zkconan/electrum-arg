@@ -1,15 +1,10 @@
 import time
 from struct import pack
 
-<<<<<<< HEAD
 from electrum_arg.i18n import _
 from electrum_arg.util import PrintError, UserCancelled
 from electrum_arg.keystore import bip39_normalize_passphrase
-from electrum_arg.bitcoin import EncodeBase58Check, DecodeBase58Check, bc_address_to_hash_160, hash_160_to_bc_address, TYPE_ADDRESS
-=======
-from electrum_arg.i18n import _
-from electrum_arg.util import PrintError, UserCancelled
->>>>>>> 1f17654d5b87b83f7ebd13b4fc56b48593b770b7
+from electrum_arg.bitcoin import serialize_xpub
 
 
 class GuiMixin(object):
@@ -152,22 +147,8 @@ class TrezorClientBase(GuiMixin, PrintError):
     def i4b(self, x):
         return pack('>I', x)
 
-<<<<<<< HEAD
-    def get_xpub(self, bip32_path):
-        address_n = self.expand_path(bip32_path)
-        creating = False #self.next_account_number() == 0
-        node = self.get_public_node(address_n, creating).node
-        xpub = ("0488B21E".decode('hex') + chr(node.depth)
-                + self.i4b(node.fingerprint) + self.i4b(node.child_num)
-                + node.chain_code + node.public_key)
-        return EncodeBase58Check(xpub)
-
-    #def address_from_derivation(self, derivation):
-    #    return self.get_address('Bitcoin', self.expand_path(derivation))
-=======
     def address_from_derivation(self, derivation):
         return self.get_address('Argentum', self.expand_path(derivation))
->>>>>>> 1f17654d5b87b83f7ebd13b4fc56b48593b770b7
 
     def toggle_passphrase(self):
         if self.features.passphrase_protection:
@@ -222,7 +203,7 @@ class TrezorClientBase(GuiMixin, PrintError):
         return (f.major_version, f.minor_version, f.patch_version)
 
     def atleast_version(self, major, minor=0, patch=0):
-        return cmp(self.firmware_version(), (major, minor, patch))
+        return cmp(self.firmware_version(), (major, minor, patch)) >= 0
 
     @staticmethod
     def wrapper(func):

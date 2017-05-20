@@ -1,6 +1,15 @@
 # -*- mode: python -*-
 
-home = 'C:\\electrum\\'
+import sys
+for i, x in enumerate(sys.argv):
+    if x == '--name':
+        cmdline_name = sys.argv[i+1]
+        break
+else:
+    raise BaseException('no name')
+
+
+home = 'C:\\electrum-arg\\'
 
 # We don't put these files in to actually include them in the script but to make the Analysis method scan them for imports
 a = Analysis([home+'electrum-arg',
@@ -14,6 +23,7 @@ a = Analysis([home+'electrum-arg',
               home+'lib/commands.py',
               home+'plugins/cosigner_pool/qt.py',
               home+'plugins/email_requests/qt.py',
+              home+'plugins/trezor/client.py',
               home+'plugins/trezor/qt.py',
               home+'plugins/keepkey/qt.py',
               home+'plugins/ledger/qt.py',
@@ -59,17 +69,23 @@ a.datas += extra_datas(home+'lib')
 a.datas += extra_datas(home+'plugins')
 a.datas += extra_datas(home+'packages')
 
+# http://stackoverflow.com/questions/19055089/pyinstaller-onefile-warning-pyconfig-h-when-importing-scipy-or-scipy-signal
+for d in a.datas:
+    if 'pyconfig' in d[0]: 
+        a.datas.remove(d)
+        break
+
 pyz = PYZ(a.pure)
 exe = EXE(pyz,
           a.scripts,
           a.binaries,
           a.datas,
-          name=os.path.join('build\\pyi.win32\\electrum-arg', 'electrum-arg.exe'),
-          debug=False,
+          name=os.path.join('build\\pyi.win32\\electrum-arg', cmdline_name),
+          debug=True,
           strip=None,
           upx=False,
           icon=home+'icons/electrum.ico',
-          console=False)
+          console=True)
           # The console True makes an annoying black box pop up, but it does make Electrum output command line commands, with this turned off no output will be given but commands can still be used
 
 coll = COLLECT(exe,
@@ -78,7 +94,7 @@ coll = COLLECT(exe,
                a.datas,
                strip=None,
                upx=True,
-               debug=False,
+               debug=True,
                icon=home+'icons/electrum.ico',
-               console=False,
+               console=True,
                name=os.path.join('dist', 'electrum-arg'))

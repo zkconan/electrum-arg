@@ -17,19 +17,26 @@ Electrum-ARG - Lightweight Argentum client
 Getting started
 ===============
 
-Electrum is a pure python application. However, if you want to use the
-Qt interface, then you need to install the Qt dependencies::
+Electrum is a pure python application. If you want to use the
+Qt interface, install the Qt dependencies::
 
     sudo apt-get install python-qt4
 
-If you downloaded the official package (tar.gz), then you can run
+If you downloaded the official package (tar.gz), you can run
 Electrum from its root directory, without installing it on your
 system; all the python dependencies are included in the 'packages'
 directory. To run Electrum from its root directory, just do::
 
     ./electrum-arg
 
-If you cloned the git repository, then you need to compile extra files
+You can also install Electrum on your system, by running this command::
+
+    python setup.py install
+
+This will download and install the Python dependencies used by
+Electrum, instead of using the 'packages' directory.
+
+If you cloned the git repository, you need to compile extra files
 before you can run Electrum. Read the next section, "Development
 Version".
 
@@ -57,29 +64,10 @@ Compile the protobuf description file::
     sudo apt-get install protobuf-compiler
     protoc --proto_path=lib/ --python_out=lib/ lib/paymentrequest.proto
 
-Create translations::
+Create translations (optional)::
 
     sudo apt-get install python-pycurl gettext
     ./contrib/make_locale
-
-
-
-Install on Linux systems
-========================
-
-If you install Electrum on your system, you can run it from any
-directory.
-
-If you have pip, you can do::
-
-    python setup.py sdist
-    sudo pip install --pre dist/Electrum-ARG-2.0.tar.gz
-
-
-If you don't have pip, install with::
-
-    python setup.py sdist
-    sudo python setup.py install
 
 
 
@@ -87,7 +75,7 @@ Creating Binaries
 =================
 
 
-In order to create binaries, you must create the 'packages' directory::
+To create binaries, create the 'packages' directory::
 
     ./contrib/make_packages
 
@@ -95,7 +83,12 @@ This directory contains the python dependencies used by Electrum.
 
 Mac OS X
 --------
+http://docs.electrum.org/en/latest/build.html#build-electrum-on-mac-os-x
+https://apple.stackexchange.com/questions/258745/install-python-pyqt4-on-macos-10-12-sierra
 
+Mac builds are a mess
+https://github.com/spesmilo/electrum/issues/1007
+https://github.com/spesmilo/electrum/issues/1063
 ::
 
     # On MacPorts installs: 
@@ -104,7 +97,7 @@ Mac OS X
     # On Homebrew installs: 
     ARCHFLAGS="-arch i386 -arch x86_64" sudo python setup-release.py py2app --includes sip
     
-    sudo hdiutil create -fs HFS+ -volname "Electrum-ARG" -srcfolder dist/Electrum-ARG.app dist/electrum-arg-VERSION-macosx.dmg
+    sudo hdiutil create -fs HFS+ -volname "Electrum-ARG" -srcfolder dist/Electrum.app dist/electrum-arg-VERSION-macosx.dmg
 
 Windows
 -------

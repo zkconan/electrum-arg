@@ -227,6 +227,7 @@ Builder.load_string('''
             id: text_input_seed
             text: ''
             on_text: Clock.schedule_once(root.on_text)
+            on_release: root.options_dialog()
         SeedLabel:
             text: root.message
         BoxLayout:
@@ -397,10 +398,12 @@ Builder.load_string('''
         height: self.minimum_height
         orientation: 'vertical'
         spacing: '12dp'
-        SeedLabel:
-            text: root.message
         SeedButton:
             text: root.seed_text
+            on_release: root.options_dialog()
+        SeedLabel:
+            text: root.message
+
 
 <LineDialog>
 
@@ -408,17 +411,13 @@ Builder.load_string('''
         text: root.title
     SeedLabel:
         text: root.message
-    GridLayout:
-        cols: 2
+    TextInput:
+        id: passphrase_input
+        multiline: False
         size_hint: 1, None
         height: '27dp'
-        BigLabel:
-            text: ''
-        TextInput:
-            id: passphrase_input
-            multiline: False
-            size_hint: 1, None
-            height: '27dp'
+    SeedLabel:
+        text: root.warning
 
 ''')
 
@@ -515,6 +514,7 @@ class WizardChoiceDialog(WizardDialog):
 class LineDialog(WizardDialog):
     title = StringProperty('')
     message = StringProperty('')
+    warning = StringProperty('')
 
     def __init__(self, wizard, **kwargs):
         WizardDialog.__init__(self, wizard, **kwargs)
@@ -526,14 +526,22 @@ class LineDialog(WizardDialog):
 class ShowSeedDialog(WizardDialog):
     seed_text = StringProperty('')
     message = _("If you forget your PIN or lose your device, your seed phrase will be the only way to recover your funds.")
+    ext = False
 
     def on_parent(self, instance, value):
         if value:
             app = App.get_running_app()
             self._back = _back = partial(self.ids.back.dispatch, 'on_release')
 
+    def options_dialog(self):
+        from seed_options import SeedOptionsDialog
+        def callback(status):
+            self.ext = status
+        d = SeedOptionsDialog(self.ext, callback)
+        d.open()
+
     def get_params(self, b):
-        return (self.seed_text,)
+        return (self.ext,)
 
 
 class WordButton(Button):
@@ -547,13 +555,21 @@ class RestoreSeedDialog(WizardDialog):
 
     def __init__(self, wizard, **kwargs):
         super(RestoreSeedDialog, self).__init__(wizard, **kwargs)
-        self._test = kwargs['is_valid']
+        self._test = kwargs['test']
         from electrum_arg.mnemonic import Mnemonic
         from electrum_arg.old_mnemonic import words as old_wordlist
         self.words = set(Mnemonic('en').wordlist).union(set(old_wordlist))
         self.ids.text_input_seed.text = test_seed if is_test else ''
         self.message = _('Please type your seed phrase using the virtual keyboard.')
         self.title = _('Enter Seed')
+        self.ext = False
+
+    def options_dialog(self):
+        from seed_options import SeedOptionsDialog
+        def callback(status):
+            self.ext = status
+        d = SeedOptionsDialog(self.ext, callback)
+        d.open()
 
     def get_suggestions(self, prefix):
         for w in self.words:
@@ -574,13 +590,16 @@ class RestoreSeedDialog(WizardDialog):
         enable_space = False
         self.ids.suggestions.clear_widgets()
         suggestions = [x for x in self.get_suggestions(last_word)]
+
+        if last_word in suggestions:
+            b = WordButton(text=last_word)
+            self.ids.suggestions.add_widget(b)
+            enable_space = True
+
         for w in suggestions:
-            if w == last_word:
-                enable_space = True
-            else:
-                if len(suggestions) < 10:
-                    b = WordButton(text=w)
-                    self.ids.suggestions.add_widget(b)
+            if w != last_word and len(suggestions) < 10:
+                b = WordButton(text=w)
+                self.ids.suggestions.add_widget(b)
 
         i = len(last_word)
         p = set()
@@ -646,12 +665,14 @@ class RestoreSeedDialog(WizardDialog):
             tis.focus = False
 
     def get_params(self, b):
-        return (self.get_text(), False)
+        return (self.get_text(), False, self.ext)
 
 
 class ConfirmSeedDialog(RestoreSeedDialog):
     def get_params(self, b):
         return (self.get_text(),)
+    def options_dialog(self):
+        pass
 
 
 class ShowXpubDialog(WizardDialog):
@@ -727,7 +748,7 @@ class InstallWizard(BaseWizard, Widget):
             try:
                 task()
             except Exception as err:
-                Clock.schedule_once(lambda dt: app.show_error(str(err)))
+                self.show_error(str(err))
             # on  completion hide message
             Clock.schedule_once(lambda dt: app.info_bubble.hide(now=True), -1)
 
@@ -738,10 +759,16 @@ class InstallWizard(BaseWizard, Widget):
         t.start()
 
     def terminate(self, **kwargs):
-        self.wallet.start_threads(self.network)
         self.dispatch('on_wizard_complete', self.wallet)
 
-    def choice_dialog(self, **kwargs): WizardChoiceDialog(self, **kwargs).open()
+    def choice_dialog(self, **kwargs):
+        choices = kwargs['choices']
+        if len(choices) > 1:
+            WizardChoiceDialog(self, **kwargs).open()
+        else:
+            f = kwargs['run_next']
+            apply(f, (choices[0][0],))
+
     def multisig_dialog(self, **kwargs): WizardMultisigDialog(self, **kwargs).open()
     def show_seed_dialog(self, **kwargs): ShowSeedDialog(self, **kwargs).open()
     def line_dialog(self, **kwargs): LineDialog(self, **kwargs).open()
@@ -754,7 +781,7 @@ class InstallWizard(BaseWizard, Widget):
     def restore_seed_dialog(self, **kwargs):
         RestoreSeedDialog(self, **kwargs).open()
 
-    def restore_keys_dialog(self, **kwargs):
+    def add_xpub_dialog(self, **kwargs):
         kwargs['message'] += ' ' + _('Use the camera button to scan a QR code.')
         AddXpubDialog(self, **kwargs).open()
 
@@ -766,7 +793,7 @@ class InstallWizard(BaseWizard, Widget):
     def show_xpub_dialog(self, **kwargs): ShowXpubDialog(self, **kwargs).open()
 
     def show_error(self, msg):
-        app.show_error(msg, duration=0.5)
+        Clock.schedule_once(lambda dt: app.show_error(msg))
 
     def password_dialog(self, message, callback):
         popup = PasswordDialog()
@@ -784,7 +811,7 @@ class InstallWizard(BaseWizard, Widget):
     def confirm_password(self, pin, run_next):
         def callback(conf):
             if conf == pin:
-                run_next(pin)
+                run_next(pin, False)
             else:
                 self.show_error(_('PIN mismatch'))
                 self.run('request_password', run_next)

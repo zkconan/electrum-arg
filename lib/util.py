@@ -187,7 +187,7 @@ def json_encode(obj):
 
 def json_decode(x):
     try:
-        return json.loads(x, parse_float=decimal.Decimal)
+        return json.loads(x, parse_float=Decimal)
     except:
         return x
 
@@ -243,14 +243,14 @@ def get_headers_path(config):
         return os.path.join(config.path, 'blockchain_headers')
 
 def user_dir():
-    if "HOME" in os.environ:
+    if 'ANDROID_DATA' in os.environ:
+        return android_check_data_dir()
+    elif os.name == 'posix':
         return os.path.join(os.environ["HOME"], ".electrum-arg")
     elif "APPDATA" in os.environ:
         return os.path.join(os.environ["APPDATA"], "Electrum-ARG")
     elif "LOCALAPPDATA" in os.environ:
         return os.path.join(os.environ["LOCALAPPDATA"], "Electrum-ARG")
-    elif 'ANDROID_DATA' in os.environ:
-        return android_check_data_dir()
     else:
         #raise Exception("No home directory found in environment variables.")
         return
@@ -261,7 +261,7 @@ def format_satoshis_plain(x, decimal_point = 8):
     scale_factor = pow(10, decimal_point)
     return "{:.8f}".format(Decimal(x) / scale_factor).rstrip('0').rstrip('.')
 
-def format_satoshis(x, is_diff=False, num_zeros = 0, decimal_point = 8, whitespaces=False):
+def format_satoshis(x, is_diff=False, num_zeros = 8, decimal_point = 8, whitespaces=False):
     from locale import localeconv
     if x is None:
         return 'unknown'
@@ -348,20 +348,14 @@ def time_difference(distance_in_time, include_seconds):
         return "over %d years" % (round(distance_in_minutes / 525600))
 
 block_explorer_info = {
-    'explorer.argentum.net': ('http://explorer.argentum.net',
+    'BlockExperts': ('http://www.blockexperts.com/arg',
                         {'tx': 'tx', 'addr': 'address'}),
-    'block-explorer.com': ('https://block-explorer.com',
-                        {'tx': 'tx', 'addr': 'address'}),
-    'Blockr.io': ('https://arg.blockr.io',
-                        {'tx': 'tx/info', 'addr': 'address/info'}),
-    'SoChain': ('https://chain.so',
-                        {'tx': 'tx/ARG', 'addr': 'address/ARG'}),
     'system default': ('blockchain:',
                         {'tx': 'tx', 'addr': 'address'}),
 }
 
 def block_explorer(config):
-    return config.get('block_explorer', 'explorer.argentum.net')
+    return config.get('block_explorer', 'BlockExperts')
 
 def block_explorer_tuple(config):
     return block_explorer_info.get(block_explorer(config))
@@ -386,12 +380,12 @@ def parse_URI(uri, on_pr=None):
 
     if ':' not in uri:
         if not bitcoin.is_address(uri):
-            raise BaseException("Not a argentum address")
+            raise BaseException("Not an argentum address")
         return {'address': uri}
 
     u = urlparse.urlparse(uri)
     if u.scheme != 'argentum':
-        raise BaseException("Not a argentum URI")
+        raise BaseException("Not an argentum URI")
     address = u.path
 
     # python for android fails to parse query
@@ -432,7 +426,7 @@ def parse_URI(uri, on_pr=None):
     r = out.get('r')
     sig = out.get('sig')
     name = out.get('name')
-    if r or (name and sig):
+    if on_pr and (r or (name and sig)):
         def get_payment_request_thread():
             import paymentrequest as pr
             if name and sig:
@@ -522,7 +516,7 @@ class SocketPipe:
                 raise timeout
             except ssl.SSLError:
                 raise timeout
-            except socket.error, err:
+            except socket.error as err:
                 if err.errno == 60:
                     raise timeout
                 elif err.errno in [11, 35, 10035]:
@@ -607,37 +601,6 @@ class QueuePipe:
     def send_all(self, requests):
         for request in requests:
             self.send(request)
-
-
-
-class StoreDict(dict):
-
-    def __init__(self, config, name):
-        self.config = config
-        self.path = os.path.join(self.config.path, name)
-        self.load()
-
-    def load(self):
-        try:
-            with open(self.path, 'r') as f:
-                self.update(json.loads(f.read()))
-        except:
-            pass
-
-    def save(self):
-        with open(self.path, 'w') as f:
-            s = json.dumps(self, indent=4, sort_keys=True)
-            r = f.write(s)
-
-    def __setitem__(self, key, value):
-        dict.__setitem__(self, key, value)
-        self.save()
-
-    def pop(self, key):
-        if key in self.keys():
-            dict.pop(self, key)
-            self.save()
-
 
 
 

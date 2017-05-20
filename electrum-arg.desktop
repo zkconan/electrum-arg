@@ -1,15 +1,15 @@
 # If you want electrum to appear in a linux app launcher ("start menu"), install this by doing:
-# sudo desktop-file-install electrum.desktop
+# sudo desktop-file-install electrum-arg.desktop
 
 [Desktop Entry]
 Comment=Lightweight Argentum Client
 Exec=electrum-arg %u
-GenericName[en_US]=Electrum-ARG
-GenericName=Electrum-ARG
-Icon=electrum-arg
+GenericName[en_US]=Argentum Wallet
+GenericName=Argentum Wallet
+Icon=electrum
 Name[en_US]=Electrum Argentum Wallet
 Name=Electrum Argentum Wallet
-Categories=Network;
+Categories=Finance;Network;
 StartupNotify=false
 Terminal=false
 Type=Application

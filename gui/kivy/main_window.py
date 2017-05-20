@@ -11,7 +11,6 @@ import electrum_arg as electrum
 from electrum_arg.bitcoin import TYPE_ADDRESS
 from electrum_arg import WalletStorage, Wallet
 from electrum_arg_gui.kivy.i18n import _
-from electrum_arg.contacts import Contacts
 from electrum_arg.paymentrequest import InvoiceStore
 from electrum_arg.util import profiler, InvalidPassword
 from electrum_arg.plugins import run_hook
@@ -23,7 +22,7 @@ from kivy.core.window import Window
 from kivy.logger import Logger
 from kivy.utils import platform
 from kivy.properties import (OptionProperty, AliasProperty, ObjectProperty,
-                             StringProperty, ListProperty, BooleanProperty)
+                             StringProperty, ListProperty, BooleanProperty, NumericProperty)
 from kivy.cache import Cache
 from kivy.clock import Clock
 from kivy.factory import Factory
@@ -76,6 +75,8 @@ class ElectrumWindow(App):
     electrum_config = ObjectProperty(None)
 
     language = StringProperty('en')
+    num_blocks = NumericProperty(0)
+    num_nodes = NumericProperty(0)
 
     def set_URI(self, uri):
         self.switch_to('send')
@@ -91,14 +92,17 @@ class ElectrumWindow(App):
         Logger.info('language: {}'.format(language))
         _.switch_lang(language)
 
+    def update_history(self, *dt):
+        if self.history_screen:
+            self.history_screen.update()
+
     def on_quotes(self, d):
-        #Logger.info("on_quotes")
-        pass
+        Logger.info("on_quotes")
+        self._trigger_update_history()
 
     def on_history(self, d):
-        #Logger.info("on_history")
-        if self.history_screen:
-            Clock.schedule_once(lambda dt: self.history_screen.update())
+        Logger.info("on_history")
+        self._trigger_update_history()
 
     def _get_bu(self):
         return self.electrum_config.get('base_unit', 'ARG')
@@ -106,17 +110,15 @@ class ElectrumWindow(App):
     def _set_bu(self, value):
         assert value in base_units.keys()
         self.electrum_config.set_key('base_unit', value, True)
-        self.update_status()
-        if self.history_screen:
-            self.history_screen.update()
+        self._trigger_update_status()
+        self._trigger_update_history()
 
     base_unit = AliasProperty(_get_bu, _set_bu)
     status = StringProperty('')
     fiat_unit = StringProperty('')
 
     def on_fiat_unit(self, a, b):
-        if self.history_screen:
-            self.history_screen.update()
+        self._trigger_update_history()
 
     def decimal_point(self):
         return base_units[self.base_unit]
@@ -124,7 +126,7 @@ class ElectrumWindow(App):
     def btc_to_fiat(self, amount_str):
         if not amount_str:
             return ''
-        rate = run_hook('exchange_rate')
+        rate = self.fx.exchange_rate()
         if not rate:
             return ''
         fiat_amount = self.get_amount(amount_str + ' ' + self.base_unit) * rate / pow(10, 8)
@@ -133,7 +135,7 @@ class ElectrumWindow(App):
     def fiat_to_btc(self, fiat_amount):
         if not fiat_amount:
             return ''
-        rate = run_hook('exchange_rate')
+        rate = self.fx.exchange_rate()
         if not rate:
             return ''
         satoshis = int(pow(10,8) * Decimal(fiat_amount) / Decimal(rate))
@@ -190,7 +192,7 @@ class ElectrumWindow(App):
 
         super(ElectrumWindow, self).__init__(**kwargs)
 
-        title = _('Electrum-ARG App')
+        title = _('Electrum (Argentum) App')
         self.electrum_config = config = kwargs.get('config', None)
         self.language = config.get('language', 'en')
         self.network = network = kwargs.get('network', None)
@@ -198,15 +200,12 @@ class ElectrumWindow(App):
 
         self.gui_object = kwargs.get('gui_object', None)
         self.daemon = self.gui_object.daemon
-
-        self.contacts = Contacts(self.electrum_config)
-        self.invoices = InvoiceStore(self.electrum_config)
+        self.fx = self.daemon.fx
 
         # create triggers so as to minimize updation a max of 2 times a sec
-        self._trigger_update_wallet =\
-            Clock.create_trigger(self.update_wallet, .5)
-        self._trigger_update_status =\
-            Clock.create_trigger(self.update_status, .5)
+        self._trigger_update_wallet = Clock.create_trigger(self.update_wallet, .5)
+        self._trigger_update_status = Clock.create_trigger(self.update_status, .5)
+        self._trigger_update_history = Clock.create_trigger(self.update_history, .5)
         # cached dialogs
         self._settings_dialog = None
         self._password_dialog = None
@@ -215,11 +214,11 @@ class ElectrumWindow(App):
         return os.path.basename(self.wallet.storage.path) if self.wallet else ' '
 
     def on_pr(self, pr):
-        if pr.verify(self.contacts):
-            key = self.invoices.add(pr)
+        if pr.verify(self.wallet.contacts):
+            key = self.wallet.invoices.add(pr)
             if self.invoices_screen:
                 self.invoices_screen.update()
-            status = self.invoices.get_status(key)
+            status = self.wallet.invoices.get_status(key)
             if status == PR_PAID:
                 self.show_error("invoice already paid")
                 self.send_screen.do_clear()
@@ -380,12 +379,18 @@ class ElectrumWindow(App):
         win = Window
         win.bind(size=self.on_size, on_keyboard=self.on_keyboard)
         win.bind(on_key_down=self.on_key_down)
-        win.softinput_mode = 'below_target'
+        #win.softinput_mode = 'below_target'
         self.on_size(win, win.size)
         self.init_ui()
         self.load_wallet_by_name(self.electrum_config.get_wallet_path())
         # init plugins
         run_hook('init_kivy', self)
+
+        # fiat currency
+        self.fiat_unit = self.fx.ccy if self.fx.is_enabled() else ''
+        self.network.register_callback(self.on_quotes, ['on_quotes'])
+        self.network.register_callback(self.on_history, ['on_history'])
+
         # default tab
         self.switch_to('history')
         # bind intent for bitcoin: URI scheme
@@ -410,6 +415,7 @@ class ElectrumWindow(App):
 
     def on_wizard_complete(self, instance, wallet):
         if wallet:
+            wallet.start_threads(self.daemon.network)
             self.daemon.add_wallet(wallet)
             self.load_wallet(wallet)
         self.on_resume()
@@ -417,7 +423,7 @@ class ElectrumWindow(App):
     def load_wallet_by_name(self, path):
         if not path:
             return
-        wallet = self.daemon.load_wallet(path)
+        wallet = self.daemon.load_wallet(path, None)
         if wallet:
             if wallet != self.wallet:
                 self.stop_wallet()
@@ -425,7 +431,8 @@ class ElectrumWindow(App):
                 self.on_resume()
         else:
             Logger.debug('Electrum: Wallet not found. Launching install wizard')
-            wizard = Factory.InstallWizard(self.electrum_config, self.network, path)
+            storage = WalletStorage(path)
+            wizard = Factory.InstallWizard(self.electrum_config, storage)
             wizard.bind(on_wizard_complete=self.on_wizard_complete)
             action = wizard.storage.get_action()
             wizard.run(action)
@@ -527,6 +534,8 @@ class ElectrumWindow(App):
 
     def on_network(self, event, *args):
         if event == 'updated':
+            self.num_blocks = self.network.get_local_height()
+            self.num_nodes = len(self.network.get_interfaces())
             self._trigger_update_wallet()
         elif event == 'status':
             self._trigger_update_status()
@@ -566,16 +575,18 @@ class ElectrumWindow(App):
         else:
             status = _("Not connected")
         n = self.wallet.basename()
-        self.status = '[size=15dp]%s[/size]\n%s' %(n, status) if n !='default_wallet' else status
+        self.status = '[size=15dp]%s[/size]\n%s' %(n, status)
 
     def get_max_amount(self):
         inputs = self.wallet.get_spendable_coins(None)
         addr = str(self.send_screen.screen.address) or self.wallet.dummy_address()
-        amount, fee = self.wallet.get_max_amount(self.electrum_config, inputs, (TYPE_ADDRESS, addr), None)
+        outputs = [(TYPE_ADDRESS, addr, '!')]
+        tx = self.wallet.make_unsigned_transaction(inputs, outputs, self.electrum_config)
+        amount = tx.output_value()
         return format_satoshis_plain(amount, self.decimal_point())
 
     def format_amount(self, x, is_diff=False, whitespaces=False):
-        return format_satoshis(x, is_diff, 0, self.decimal_point(), whitespaces)
+        return format_satoshis(x, is_diff, 8, self.decimal_point(), whitespaces)
 
     def format_amount_and_units(self, x):
         return format_satoshis_plain(x, self.decimal_point()) + ' ' + self.base_unit
@@ -593,8 +604,8 @@ class ElectrumWindow(App):
                 from plyer import notification
             icon = (os.path.dirname(os.path.realpath(__file__))
                     + '/../../' + self.icon)
-            notification.notify('Electrum-ARG', message,
-                            app_icon=icon, app_name='Electrum-ARG')
+            notification.notify('Electrum (Argentum)', message,
+                            app_icon=icon, app_name='Electrum (Argentum)')
         except ImportError:
             Logger.Error('Notification: needs plyer; `sudo pip install plyer`')
 
@@ -716,12 +727,17 @@ class ElectrumWindow(App):
         Clock.schedule_once(lambda dt: on_complete(ok, txid))
 
     def broadcast(self, tx, pr=None):
-        def on_complete(ok, txid):
-            self.show_info(txid)
-            if ok and pr:
-                pr.set_paid(tx.hash())
-                self.invoices.save()
-                self.update_tab('invoices')
+        def on_complete(ok, msg):
+            if ok:
+                self.show_info(_('Payment sent.'))
+                if self.send_screen:
+                    self.send_screen.do_clear()
+                if pr:
+                    self.wallet.invoices.set_paid(pr, tx.txid())
+                    self.wallet.invoices.save()
+                    self.update_tab('invoices')
+            else:
+                self.show_error(msg)
 
         if self.network and self.network.is_connected():
             self.show_info(_('Sending'))

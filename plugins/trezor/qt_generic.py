@@ -4,7 +4,6 @@ import threading
 from PyQt4.Qt import Qt
 from PyQt4.Qt import QGridLayout, QInputDialog, QPushButton
 from PyQt4.Qt import QVBoxLayout, QLabel, SIGNAL
-from electrum_arg_gui.qt.main_window import StatusBarButton
 from electrum_arg_gui.qt.util import *
 from .plugin import TIM_NEW, TIM_RECOVER, TIM_MNEMONIC
 from ..hw_wallet.qt import QtHandlerBase, QtPluginBase
@@ -131,18 +130,19 @@ class CharacterDialog(WindowModalDialog):
 
 class QtHandler(QtHandlerBase):
 
-    charSig = pyqtSignal(object)
+    char_signal = pyqtSignal(object)
+    pin_signal = pyqtSignal(object)
 
     def __init__(self, win, pin_matrix_widget_class, device):
         super(QtHandler, self).__init__(win, device)
-        win.connect(win, SIGNAL('pin_dialog'), self.pin_dialog)
-        self.charSig.connect(self.update_character_dialog)
+        self.char_signal.connect(self.update_character_dialog)
+        self.pin_signal.connect(self.pin_dialog)
         self.pin_matrix_widget_class = pin_matrix_widget_class
         self.character_dialog = None
 
     def get_char(self, msg):
         self.done.clear()
-        self.charSig.emit(msg)
+        self.char_signal.emit(msg)
         self.done.wait()
         data = self.character_dialog.data
         if not data or 'done' in data:
@@ -152,7 +152,7 @@ class QtHandler(QtHandlerBase):
 
     def get_pin(self, msg):
         self.done.clear()
-        self.win.emit(SIGNAL('pin_dialog'), msg)
+        self.pin_signal.emit(msg)
         self.done.wait()
         return self.response
 
@@ -201,18 +201,6 @@ class QtPlugin(QtPluginBase):
         if device_id:
             SettingsDialog(window, self, keystore, device_id).exec_()
 
-    def choose_device(self, window, keystore):
-        '''This dialog box should be usable even if the user has
-        forgotten their PIN or it is in bootloader mode.'''
-        device_id = self.device_manager().xpub_id(keystore.xpub)
-        if not device_id:
-            try:
-                info = self.device_manager().select_device(self, keystore.handler, keystore)
-            except UserCancelled:
-                return
-            device_id = info.device.id_
-        return device_id
-
     def request_trezor_init_settings(self, wizard, method, device):
         vbox = QVBoxLayout()
         next_enabled = True
@@ -254,7 +242,8 @@ class QtPlugin(QtPluginBase):
             else:
                 msg = _("Enter the master private key beginning with xprv:")
                 def set_enabled():
-                    wizard.next_button.setEnabled(Wallet.is_xprv(clean_text(text)))
+                    from electrum_arg.keystore import is_xprv
+                    wizard.next_button.setEnabled(is_xprv(clean_text(text)))
                 text.textChanged.connect(set_enabled)
                 next_enabled = False
 
@@ -283,7 +272,7 @@ class QtPlugin(QtPluginBase):
         vbox.addWidget(passphrase_warning)
         vbox.addWidget(cb_phrase)
 
-        wizard.set_main_layout(vbox, next_enabled=next_enabled)
+        wizard.exec_layout(vbox, next_enabled=next_enabled)
 
         if method in [TIM_NEW, TIM_RECOVER]:
             item = bg.checkedId()
@@ -413,6 +402,7 @@ class SettingsDialog(WindowModalDialog):
             invoke_client('set_pin', remove=True)
 
         def wipe_device():
+            wallet = window.wallet
             if wallet and sum(wallet.get_balance()):
                 title = _("Confirm Device Wipe")
                 msg = _("Are you SURE you want to wipe the device?\n"

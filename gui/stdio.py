@@ -1,8 +1,8 @@
 from decimal import Decimal
 _ = lambda x:x
 #from i18n import _
-from electrum_arg.wallet import WalletStorage, Wallet
-from electrum_arg.util import format_satoshis, set_verbosity, StoreDict
+from electrum_arg import WalletStorage, Wallet
+from electrum_arg.util import format_satoshis, set_verbosity
 from electrum_arg.bitcoin import is_valid, COIN, TYPE_ADDRESS
 from electrum_arg.network import filter_protocol
 import sys, getpass, datetime
@@ -19,6 +19,9 @@ class ElectrumGui:
         if not storage.file_exists:
             print "Wallet not found. try 'electrum-arg create'"
             exit()
+        if storage.is_encrypted():
+            password = getpass.getpass('Password:', stream=None)
+            storage.decrypt(password)
 
         self.done = 0
         self.last_balance = ""
@@ -32,7 +35,7 @@ class ElectrumGui:
 
         self.wallet = Wallet(storage)
         self.wallet.start_threads(self.network)
-        self.contacts = StoreDict(self.config, 'contacts')
+        self.contacts = self.wallet.contacts
 
         self.network.register_callback(self.on_network, ['updated', 'banner'])
         self.commands = [_("[h] - displays this help text"), \
@@ -127,7 +130,7 @@ class ElectrumGui:
         self.print_list(messages, "%19s  %25s "%("Key", "Value"))
 
     def print_addresses(self):
-        messages = map(lambda addr: "%30s    %30s       "%(addr, self.wallet.labels.get(addr,"")), self.wallet.addresses())
+        messages = map(lambda addr: "%30s    %30s       "%(addr, self.wallet.labels.get(addr,"")), self.wallet.get_addresses())
         self.print_list(messages, "%19s  %25s "%("Address", "Label"))
 
     def print_order(self):
