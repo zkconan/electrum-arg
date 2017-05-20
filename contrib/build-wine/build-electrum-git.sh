@@ -2,7 +2,7 @@
 
 # You probably need to update only this link
 ELECTRUM_GIT_URL=git://github.com/argentumproject/electrum-arg.git
-BRANCH=test
+BRANCH=master
 NAME_ROOT=electrum-arg
 
 
