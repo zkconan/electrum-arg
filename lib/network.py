@@ -840,7 +840,7 @@ class Network(util.DaemonThread):
 
     def maintain_requests(self):
         for interface in self.interfaces.values():
-            if interface.request and time.time() - interface.request_time > 20:
+            if interface.request and time.time() - interface.request_time > 40:
                 interface.print_error("blockchain request timed out")
                 self.connection_down(interface.server)
                 continue
