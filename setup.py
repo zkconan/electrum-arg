@@ -41,7 +41,7 @@ setup(
         'pbkdf2',
         'requests',
         'qrcode',
-        'ltc_scrypt',
+        'scrypt>=0.8.0',
         'protobuf',
         'dnspython',
         'jsonrpclib-pelix',

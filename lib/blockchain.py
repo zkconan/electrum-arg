@@ -28,10 +28,11 @@ from . import bitcoin
 from .bitcoin import *
 
 try:
-    from ltc_scrypt import getPoWHash
+    import scrypt
+    getPoWHash = lambda x: scrypt.hash(x, x, N=1024, r=1, p=1, buflen=32)
 except ImportError:
-    util.print_msg("Warning: ltc_scrypt not available, using fallback")
-    from scrypt import scrypt_1024_1_1_80 as getPoWHash
+    util.print_msg("Warning: package scrypt not available, using fallback")
+    from .scrypt import scrypt_1024_1_1_80 as getPoWHash
 
 MAX_TARGET = 0x00000000FFFF0000000000000000000000000000000000000000000000000000
 
