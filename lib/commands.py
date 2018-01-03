@@ -123,7 +123,7 @@ class Commands:
         return ' '.join(sorted(known_commands.keys()))
 
     @command('')
-    def create(self, segwit=False):
+    def create(self):
         """Create a new wallet"""
         raise BaseException('Not a JSON-RPC command')
 
@@ -159,7 +159,7 @@ class Commands:
         return True
 
     @command('')
-    def make_seed(self, nbits=132, entropy=1, language=None, segwit=False):
+    def make_seed(self, nbits=132, entropy=1, language=None):
         """Create a seed"""
         from .mnemonic import Mnemonic
         t = 'standard'
