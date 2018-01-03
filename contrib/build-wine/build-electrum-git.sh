@@ -20,7 +20,7 @@ set -e
 
 cd tmp
 
-for repo in electrum electrum-locale electrum-icons; do
+for repo in electrum-arg electrum-locale electrum-icons; do
     if [ -d $repo ]; then
 	cd $repo
 	git pull
@@ -40,7 +40,7 @@ for i in ./locale/*; do
 done
 popd
 
-pushd electrum
+pushd electrum-arg
 if [ ! -z "$1" ]; then
     git checkout $1
 fi
@@ -51,7 +51,7 @@ find -exec touch -d '2000-11-11T11:11:11+00:00' {} +
 popd
 
 rm -rf $WINEPREFIX/drive_c/electrum-arg
-cp -r electrum $WINEPREFIX/drive_c/electrum-arg
+cp -r electrum-arg $WINEPREFIX/drive_c/electrum-arg
 cp electrum-arg/LICENCE .
 cp -r electrum-locale/locale $WINEPREFIX/drive_c/electrum-arg/lib/
 cp electrum-icons/icons_rc.py $WINEPREFIX/drive_c/electrum-arg/gui/qt/
