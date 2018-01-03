@@ -155,26 +155,26 @@ class Blockchain(util.PrintError):
         p = self.path()
         self._size = os.path.getsize(p)//80 if os.path.exists(p) else 0
 
-    def verify_header(self, header, prev_hash, target):
+    def verify_header(self, header, prev_hash):#, target):
         _hash = hash_header(header)
-        if prev_hash != header.get('prev_block_hash'):
-            raise BaseException("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
+        # if prev_hash != header.get('prev_block_hash'):
+        #     raise BaseException("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
         if bitcoin.NetworkConstants.TESTNET:
             return
-        bits = self.target_to_bits(target)
-        if bits != header.get('bits'):
-            raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))
-        if int('0x' + _hash, 16) > target:
-            raise BaseException("insufficient proof of work: %s vs target %s" % (int('0x' + _hash, 16), target))
+        # bits = self.target_to_bits(target)
+        # if bits != header.get('bits'):
+        #     raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))
+        # if int('0x' + _hash, 16) > target:
+        #     raise BaseException("insufficient proof of work: %s vs target %s" % (int('0x' + _hash, 16), target))
 
     def verify_chunk(self, index, data):
         num = len(data) // 80
         prev_hash = self.get_hash(index * 2016 - 1)
-        target = self.get_target(index-1)
+        # target = self.get_target(index-1)
         for i in range(num):
             raw_header = data[i*80:(i+1) * 80]
             header = deserialize_header(raw_header, index*2016 + i)
-            self.verify_header(header, prev_hash, target)
+            self.verify_header(header, prev_hash)#, target)
             prev_hash = hash_header(header)
 
     def pow_hash_header(self, header):
@@ -335,7 +335,7 @@ class Blockchain(util.PrintError):
             return False
         target = self.get_target(height // 2016 - 1)
         try:
-            self.verify_header(header, prev_hash, target)
+            self.verify_header(header, prev_hash)#, target)
         except BaseException as e:
             return False
         return True
