@@ -20,7 +20,7 @@ set -e
 
 cd tmp
 
-for repo in electrum-arg electrum-locale electrum-icons; do
+for repo in electrum-arg electrum-arg-locale electrum-arg-icons; do
     if [ -d $repo ]; then
 	cd $repo
 	git pull
@@ -32,7 +32,7 @@ for repo in electrum-arg electrum-locale electrum-icons; do
     fi
 done
 
-pushd electrum-locale
+pushd electrum-arg-locale
 for i in ./locale/*; do
     dir=$i/LC_MESSAGES
     mkdir -p $dir
@@ -53,8 +53,8 @@ popd
 rm -rf $WINEPREFIX/drive_c/electrum-arg
 cp -r electrum-arg $WINEPREFIX/drive_c/electrum-arg
 cp electrum-arg/LICENCE .
-cp -r electrum-locale/locale $WINEPREFIX/drive_c/electrum-arg/lib/
-cp electrum-icons/icons_rc.py $WINEPREFIX/drive_c/electrum-arg/gui/qt/
+cp -r electrum-arg-locale/locale $WINEPREFIX/drive_c/electrum-arg/lib/
+cp electrum-arg-icons/icons_rc.py $WINEPREFIX/drive_c/electrum-arg/gui/qt/
 
 # Install frozen dependencies
 $PYTHON -m pip install -r ../../requirements.txt
