@@ -1,17 +1,17 @@
 from functools import partial
 import threading
 
-from PyQt4.Qt import Qt
-from PyQt4.Qt import QGridLayout, QInputDialog, QPushButton
-from PyQt4.Qt import QVBoxLayout, QLabel, SIGNAL
+from PyQt5.Qt import Qt
+from PyQt5.Qt import QGridLayout, QInputDialog, QPushButton
+from PyQt5.Qt import QVBoxLayout, QLabel
 from electrum_arg_gui.qt.util import *
 from .plugin import TIM_NEW, TIM_RECOVER, TIM_MNEMONIC
 from ..hw_wallet.qt import QtHandlerBase, QtPluginBase
 
-from electrum_arg_gui.i18n import _
-from electrum_arg_gui.plugins import hook, DeviceMgr
-from electrum_arg_gui.util import PrintError, UserCancelled
-from electrum_arg_gui.wallet import Wallet, Standard_Wallet
+from electrum_arg.i18n import _
+from electrum_arg.plugins import hook, DeviceMgr
+from electrum_arg.util import PrintError, UserCancelled, bh2u
+from electrum_arg.wallet import Wallet, Standard_Wallet
 
 PASSPHRASE_HELP_SHORT =_(
     "Passphrases allow you to access new wallets, each "
@@ -213,7 +213,7 @@ class QtPlugin(QtPluginBase):
         vbox.addLayout(hl)
 
         def clean_text(widget):
-            text = unicode(widget.toPlainText()).strip()
+            text = widget.toPlainText().strip()
             return ' '.join(text.split())
 
         if method in [TIM_NEW, TIM_RECOVER]:
@@ -281,7 +281,7 @@ class QtPlugin(QtPluginBase):
             item = ' '.join(str(clean_text(text)).split())
             pin = str(pin.text())
 
-        return (item, unicode(name.text()), pin, cb_phrase.isChecked())
+        return (item, name.text(), pin, cb_phrase.isChecked())
 
 
 
@@ -320,7 +320,7 @@ class SettingsDialog(WindowModalDialog):
         def update(features):
             self.features = features
             set_label_enabled()
-            bl_hash = features.bootloader_hash.encode('hex')
+            bl_hash = bh2u(features.bootloader_hash)
             bl_hash = "\n".join([bl_hash[:32], bl_hash[32:]])
             noyes = [_("No"), _("Yes")]
             endis = [_("Enable Passphrases"), _("Disable Passphrases")]
@@ -352,7 +352,7 @@ class SettingsDialog(WindowModalDialog):
             label_apply.setEnabled(label_edit.text() != self.features.label)
 
         def rename():
-            invoke_client('change_label', unicode(label_edit.text()))
+            invoke_client('change_label', label_edit.text())
 
         def toggle_passphrase():
             title = _("Confirm Toggle Passphrase Protection")
@@ -375,25 +375,31 @@ class SettingsDialog(WindowModalDialog):
             invoke_client('toggle_passphrase', unpair_after=currently_enabled)
 
         def change_homescreen():
-            from PIL import Image  # FIXME
             dialog = QFileDialog(self, _("Choose Homescreen"))
-            filename = dialog.getOpenFileName()
-            if filename:
-                im = Image.open(str(filename))
-                if im.size != (hs_cols, hs_rows):
-                    raise Exception('Image must be 64 x 128 pixels')
+            filename, __ = dialog.getOpenFileName()
+
+            if filename.endswith('.toif'):
+                img = open(filename, 'rb').read()
+                if img[:8] != b'TOIf\x90\x00\x90\x00':
+                    raise Exception('File is not a TOIF file with size of 144x144')
+            else:
+                from PIL import Image # FIXME
+                im = Image.open(filename)
+                if im.size != (128, 64):
+                    raise Exception('Image must be 128 x 64 pixels')
                 im = im.convert('1')
                 pix = im.load()
-                img = ''
-                for j in range(hs_rows):
-                    for i in range(hs_cols):
-                        img += '1' if pix[i, j] else '0'
-                img = ''.join(chr(int(img[i:i + 8], 2))
-                              for i in range(0, len(img), 8))
+                img = bytearray(1024)
+                for j in range(64):
+                    for i in range(128):
+                        if pix[i, j]:
+                            o = (i + j * 128)
+                            img[o // 8] |= (1 << (7 - o % 8))
+                img = bytes(img)
                 invoke_client('change_homescreen', img)
 
         def clear_homescreen():
-            invoke_client('change_homescreen', '\x00')
+            invoke_client('change_homescreen', b'\x00')
 
         def set_pin():
             invoke_client('set_pin', remove=False)

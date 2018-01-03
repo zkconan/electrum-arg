@@ -1,9 +1,8 @@
 from electrum_arg.i18n import _
 
-import PyQt4
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
-import PyQt4.QtCore as QtCore
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import QSlider, QToolTip
 
 import threading
 
@@ -21,7 +20,7 @@ class FeeSlider(QSlider):
 
     def moved(self, pos):
         with self.lock:
-            fee_rate = self.config.dynfee(pos) if self.dyn else pos * self.fee_step
+            fee_rate = self.config.dynfee(pos) if self.dyn else self.config.static_fee(pos)
             tooltip = self.get_tooltip(pos, fee_rate)
             QToolTip.showText(QCursor.pos(), tooltip, self)
             self.setToolTip(tooltip)
@@ -29,7 +28,7 @@ class FeeSlider(QSlider):
 
     def get_tooltip(self, pos, fee_rate):
         from electrum_arg.util import fee_levels
-        rate_str = self.window.format_amount(fee_rate) + ' ' + self.window.base_unit() + '/kB'
+        rate_str = self.window.format_fee_rate(fee_rate) if fee_rate else _('unknown')
         if self.dyn:
             tooltip = fee_levels[pos] + '\n' + rate_str
         else:
@@ -48,10 +47,34 @@ class FeeSlider(QSlider):
                 self.setRange(0, 4)
                 self.setValue(pos)
             else:
-                self.fee_step = self.config.max_fee_rate() / 10
                 fee_rate = self.config.fee_per_kb()
-                pos = min(fee_rate / self.fee_step, 10)
-                self.setRange(1, 10)
+                pos = self.config.static_fee_index(fee_rate)
+                self.setRange(0, 9)
                 self.setValue(pos)
             tooltip = self.get_tooltip(pos, fee_rate)
             self.setToolTip(tooltip)
+
+    def activate(self):
+        self.setStyleSheet('')
+
+    def deactivate(self):
+        # TODO it would be nice to find a platform-independent solution
+        # that makes the slider look as if it was disabled
+        self.setStyleSheet(
+            """
+            QSlider::groove:horizontal {
+                border: 1px solid #999999;
+                height: 8px;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #B1B1B1, stop:1 #B1B1B1);
+                margin: 2px 0;
+            }
+
+            QSlider::handle:horizontal {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #b4b4b4, stop:1 #8f8f8f);
+                border: 1px solid #5c5c5c;
+                width: 12px;
+                margin: -2px 0;
+                border-radius: 3px;
+            }
+            """
+        )

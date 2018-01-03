@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 # python setup.py sdist --format=zip,gztar
 
@@ -11,8 +11,8 @@ import argparse
 
 version = imp.load_source('version', 'lib/version.py')
 
-if sys.version_info[:3] < (2, 7, 0):
-    sys.exit("Error: Electrum requires Python version >= 2.7.0...")
+if sys.version_info[:3] < (3, 4, 0):
+    sys.exit("Error: Electrum requires Python version >= 3.4.0...")
 
 data_files = []
 
@@ -36,7 +36,7 @@ setup(
     name="Electrum-Argentum",
     version=version.ELECTRUM_VERSION,
     install_requires=[
-        'pyaes',
+        'pyaes>=0.1a1',
         'ecdsa>=0.9',
         'pbkdf2',
         'requests',
@@ -44,7 +44,7 @@ setup(
         'ltc_scrypt',
         'protobuf',
         'dnspython',
-        'jsonrpclib',
+        'jsonrpclib-pelix',
         'PySocks>=1.6.6',
     ],
     packages=[
@@ -71,7 +71,11 @@ setup(
     },
     package_data={
         'electrum_arg': [
+            'servers.json',
+            'servers_testnet.json',
             'currencies.json',
+            'checkpoints.json',
+            'checkpoints_testnet.json',
             'www/index.html',
             'wordlist/*.txt',
             'locale/*/LC_MESSAGES/electrum.mo',

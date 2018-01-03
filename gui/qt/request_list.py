@@ -25,12 +25,13 @@
 
 
 from electrum_arg.i18n import _
-from electrum_arg.util import block_explorer_URL, format_satoshis, format_time, age
+from electrum_arg.util import format_time, age
 from electrum_arg.plugins import run_hook
-from electrum_arg.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
-from util import MyTreeWidget, pr_tooltips, pr_icons
+from electrum_arg.paymentrequest import PR_UNKNOWN
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import QTreeWidgetItem, QMenu
+from .util import MyTreeWidget, pr_tooltips, pr_icons
 
 
 class RequestList(MyTreeWidget):
@@ -48,7 +49,7 @@ class RequestList(MyTreeWidget):
     def item_changed(self, item):
         if item is None:
             return
-        if not self.isItemSelected(item):
+        if not item.isSelected():
             return
         addr = str(item.text(1))
         req = self.wallet.receive_requests[addr]

@@ -28,9 +28,9 @@ class GuiMixin(object):
         # However, making the user acknowledge they cancelled
         # gets old very quickly, so we suppress those.  The NotInitialized
         # one is misnamed and indicates a passphrase request was cancelled.
-        if msg.code in (self.types.Failure_PinCancelled,
-                        self.types.Failure_ActionCancelled,
-                        self.types.Failure_NotInitialized):
+        if msg.code in (self.types.FailureType.PinCancelled,
+                        self.types.FailureType.ActionCancelled,
+                        self.types.FailureType.NotInitialized):
             raise UserCancelled()
         raise RuntimeError(msg.message)
 
@@ -147,8 +147,11 @@ class TrezorClientBase(GuiMixin, PrintError):
     def i4b(self, x):
         return pack('>I', x)
 
-    def address_from_derivation(self, derivation):
-        return self.get_address('Argentum', self.expand_path(derivation))
+    def get_xpub(self, bip32_path, xtype):
+        address_n = self.expand_path(bip32_path)
+        creating = False
+        node = self.get_public_node(address_n, creating).node
+        return serialize_xpub(xtype, node.chain_code, node.public_key, node.depth, self.i4b(node.fingerprint), self.i4b(node.child_num))
 
     def toggle_passphrase(self):
         if self.features.passphrase_protection:
@@ -203,7 +206,7 @@ class TrezorClientBase(GuiMixin, PrintError):
         return (f.major_version, f.minor_version, f.patch_version)
 
     def atleast_version(self, major, minor=0, patch=0):
-        return cmp(self.firmware_version(), (major, minor, patch)) >= 0
+        return self.firmware_version() >= (major, minor, patch)
 
     @staticmethod
     def wrapper(func):
@@ -223,7 +226,7 @@ class TrezorClientBase(GuiMixin, PrintError):
 
     @staticmethod
     def wrap_methods(cls):
-        for method in ['apply_settings', 'change_pin', 'decrypt_message',
+        for method in ['apply_settings', 'change_pin',
                        'get_address', 'get_public_node',
                        'load_device_by_mnemonic', 'load_device_by_xprv',
                        'recovery_device', 'reset_device', 'sign_message',
