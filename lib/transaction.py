@@ -301,17 +301,13 @@ def parse_scriptSig(d, _bytes):
     match = [ opcodes.OP_PUSHDATA4 ]
     if match_decoded(decoded, match):
         item = decoded[0][1]
-        if item[0] == 0:
-            d['address'] = bitcoin.hash160_to_p2sh(bitcoin.hash_160(item))
-            d['type'] = 'p2wpkh-p2sh' if len(item) == 22 else 'p2wsh-p2sh'
-        else:
-            # payto_pubkey
-            d['type'] = 'p2pk'
-            d['address'] = "(pubkey)"
-            d['signatures'] = [bh2u(item)]
-            d['num_sig'] = 1
-            d['x_pubkeys'] = ["(pubkey)"]
-            d['pubkeys'] = ["(pubkey)"]
+        # payto_pubkey
+        d['type'] = 'p2pk'
+        d['address'] = "(pubkey)"
+        d['signatures'] = [bh2u(item)]
+        d['num_sig'] = 1
+        d['x_pubkeys'] = ["(pubkey)"]
+        d['pubkeys'] = ["(pubkey)"]
         return
 
     # non-generated TxIn transactions push a signature
@@ -662,19 +658,18 @@ class Transaction:
         return bh2u(bfh(txin['prevout_hash'])[::-1]) + int_to_hex(txin['prevout_n'], 4)
 
     @classmethod
-    def serialize_input(self, txin, script):
+    def serialize_input(self, txin, script, estimate_size=False):
         # Prev hash and index
         s = self.serialize_outpoint(txin)
         # Script length, script, sequence
         s += var_int(len(script)//2)
         s += script
         s += int_to_hex(txin.get('sequence', 0xffffffff - 1), 4)
+        # offline signing needs to know the input value
+        if ('value' in txin   # Legacy txs
+            and not (estimate_size or self.is_txin_complete(txin))):
+            s += int_to_hex(txin['value'], 8)
         return s
-
-    def set_rbf(self, rbf):
-        nSequence = 0xffffffff - (2 if rbf else 1)
-        for txin in self.inputs():
-            txin['sequence'] = nSequence
 
     def BIP_LI01_sort(self):
         # See https://github.com/kristovatlas/rfc/blob/master/bips/bip-li01.mediawiki
@@ -691,7 +686,7 @@ class Transaction:
 
     def serialize_preimage(self, i):
         nVersion = int_to_hex(self.version, 4)
-        nHashType = int_to_hex(self.nHashType(), 4)
+        nHashType = int_to_hex(1, 4)
         nLocktime = int_to_hex(self.locktime, 4)
         inputs = self.inputs()
         outputs = self.outputs()

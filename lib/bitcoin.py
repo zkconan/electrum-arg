@@ -72,7 +72,7 @@ class NetworkConstants:
     @classmethod
     def set_mainnet(cls):
         cls.TESTNET = False
-        cls.WIF_PREFIX = 0x97
+        cls.WIF_PREFIX = 0x80
         cls.ADDRTYPE_P2PKH = 23
         cls.ADDRTYPE_P2SH = 5
         # cls.SEGWIT_HRP = "bc"
