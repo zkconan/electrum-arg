@@ -98,7 +98,7 @@ from electrum_arg import daemon
 from electrum_arg import keystore
 from electrum_arg.mnemonic import Mnemonic
 
-import electrum_plugins
+import electrum_arg_plugins
 # get password routine
 def prompt_password(prompt, confirm=True):
     import getpass
